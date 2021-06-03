@@ -45,7 +45,7 @@ class AccessToken():
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S %z')
         self._expiration_datetime = value
 
-    def isAccess_token_available(self):
+    def is_access_token_available(self):
         if self.access_token is None:
             return False
         if self.expiration_datetime is not None:
