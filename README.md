@@ -1,0 +1,1 @@
+# smaregi-platform-api
