@@ -1,6 +1,8 @@
 import dataclasses
 import datetime
 
+from SmaregiPlatformApi.entities.authorize import AccessToken
+
 @dataclasses.dataclass
 class Config():
     ENV_DIVISION_MOCK = 'MOCK'
@@ -20,7 +22,7 @@ class Config():
         self.smaregi_client_secret = client_secret
         self._uri_info = self.uri_access + 'userinfo'
 
-        self.access_token = ''
-        self.contract_id = ''
+        self.access_token: "AccessToken"
+        self.contract_id: str
 
         self.logger = logger

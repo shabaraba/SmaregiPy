@@ -24,8 +24,8 @@ class UserAccessToken():
 
 class AccessToken():
     def __init__(self, _access_token, _expiration_datetime):
-        self.access_token = _access_token
-        self.expiration_datetime = _expiration_datetime
+        self._access_token: str = _access_token
+        self._expiration_datetime = _expiration_datetime
 
     @property
     def access_token(self):

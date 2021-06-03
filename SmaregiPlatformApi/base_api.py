@@ -46,7 +46,7 @@ class BaseIdentificationApi(BaseApi):
 
 class BaseServiceApi(BaseApi):
     def _show_authorization_string(self):
-        return self.config.access_token
+        return self.config.access_token.access_token
 
     def _get_smaregi_auth(self):
         string = self._show_authorization_string()
