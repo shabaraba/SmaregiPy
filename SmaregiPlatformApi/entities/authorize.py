@@ -39,7 +39,7 @@ class AccessToken():
     def expiration_datetime(self):
         return self._expiration_datetime
 
-    @expirationDatetime.setter
+    @expiration_datetime.setter
     def expiration_datetime(self, value):
         if type(value) == str:
             value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S %z')

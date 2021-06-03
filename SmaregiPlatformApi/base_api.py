@@ -8,6 +8,13 @@ from urllib.parse import urlencode
 from .entities import ErrorResponse
 from .config import Config
 
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+)
+
 
 class BaseApi():
     def __init__(self, config: 'config'):
@@ -96,7 +103,7 @@ class BaseServiceApi(BaseApi):
         body = {}
 
 
-    def _api_get(self, uri: str, header: dict, body: dict) -> tuple[int, any]:
+    def _api_get(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
         """APIを実施します
         link、pageがある場合、すべて実施してデータを結合します
 
@@ -126,7 +133,7 @@ class BaseServiceApi(BaseApi):
         return (response.status_code, result_list)
 
 
-    def _api_post(self, uri: str, header: dict, body: dict) -> tuple[int, any]:
+    def _api_post(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
         """POSTのAPIを実施します
 
         Args:
