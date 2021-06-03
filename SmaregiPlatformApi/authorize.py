@@ -19,7 +19,7 @@ class AuthorizeApi(BaseIdentificationApi):
     def authorize(self):
         query = {
             'response_type': 'code',
-            'client_id': self.config.smaregiClientId,
+            'client_id': self.config.smaregi_client_id,
             'scope': 'openid',
             'state': self.csrf,
             'redirect_uri': self.redirect_uri
