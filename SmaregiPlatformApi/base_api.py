@@ -11,16 +11,14 @@ from .config import Config
 from typing import (
     Any,
     Dict,
-    List,
     Tuple,
 )
 
 
 class BaseApi():
-    def __init__(self, config: 'config'):
+    def __init__(self, config: 'Config'):
         self.config = config
         # self.logger = self.config.logger
-
 
     def _get_base64_encode(self, string):
         return base64.b64encode(string)
@@ -29,9 +27,9 @@ class BaseApi():
 class BaseIdentificationApi(BaseApi):
     def _show_authorization_string(self):
         return (
-            self.config.smaregiClientId +
+            self.config.smaregi_client_id +
             ":" +
-            self.config.smaregiClientSecret
+            self.config.smaregi_client_secret
         ).encode()
 
     def _get_smaregi_auth(self):
@@ -48,20 +46,18 @@ class BaseIdentificationApi(BaseApi):
 
 class BaseServiceApi(BaseApi):
     def _show_authorization_string(self):
-        return self.config.accessToken
+        return self.config.access_token
 
     def _get_smaregi_auth(self):
         string = self._show_authorization_string()
         return "Bearer " + string
-        
-    
+
     def _get_header(self):
         return {
             'Authorization': self._get_smaregi_auth(),
-            'Content-Type':	'application/x-www-form-urlencoded',        
+            'Content-Type': 'application/x-www-form-urlencoded',        
         }
-        
-        
+
     def _get_query(self, field=None, sort=None, where_dict=None):
         body = {
             'limit': 1000,
@@ -79,8 +75,7 @@ class BaseServiceApi(BaseApi):
             body.update(where_dict)
 
         return body
-        
-        
+
     def _get_query_for_detail(self, field=None, sort=None, where_dict=None, **kwargs):
         body = {
         }
@@ -98,10 +93,8 @@ class BaseServiceApi(BaseApi):
 
         return body
 
-    
     def _get_request_body():
         body = {}
-
 
     def _api_get(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
         """APIを実施します
@@ -113,7 +106,7 @@ class BaseServiceApi(BaseApi):
             body (dict): [description]
 
         Returns:
-            tuple[int, any]: status, response の tuple statusが200でなければ、responseはエラー内容
+            Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
         """
         response = requests.get(uri, headers=header, params=urlencode(body))
         result_list = response.json()
@@ -131,7 +124,6 @@ class BaseServiceApi(BaseApi):
             result_list.extend(response.json())
 
         return (response.status_code, result_list)
-
 
     def _api_post(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
         """POSTのAPIを実施します
