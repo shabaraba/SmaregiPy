@@ -4,7 +4,7 @@ import json
 from logging import Logger
 from urllib.parse import urlencode
 
-from SmaregiPlatformApi import smaregi_config
+from SmaregiPlatformApi.config import smaregi_config
 from .entities import ErrorResponse
 from .config import Config
 

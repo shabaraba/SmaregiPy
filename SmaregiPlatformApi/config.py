@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 from logging import Logger
 import dataclasses
@@ -72,3 +73,15 @@ class Config():
     def set_by_yaml_file(self: 'Config', file_path: str) -> 'Config':
         # TODO
         return self
+
+
+smaregi_config = Config(
+    Config.ENV_DIVISION_DEVELOPMENT,
+    'contract_id',
+    'client_id',
+    'client_secret',
+    AccessToken(
+        'access_token',
+        datetime.datetime.now()
+    )
+)

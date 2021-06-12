@@ -17,7 +17,7 @@ class TransactionsApi(BaseServiceApi):
         field=None,
         sort=None,
         where_dict=None
-    ) -> list['TransactionHead']:
+    ) -> List[TransactionHead]:
         self.uri = smaregi_config.uri_pos + '/transactions'
 
         header = self._get_header()

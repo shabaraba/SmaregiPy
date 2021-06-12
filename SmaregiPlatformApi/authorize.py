@@ -4,7 +4,7 @@ import pytz
 
 import requests
 
-from SmaregiPlatformApi import smaregi_config
+from SmaregiPlatformApi.config import smaregi_config
 from .base_api import BaseIdentificationApi
 from .entities.authorize import UserInfo, AccessToken, UserAccessToken
 
