@@ -1,10 +1,10 @@
 import base64
 import requests
 import json
-import time
-import logging
+from logging import Logger
 from urllib.parse import urlencode
 
+from SmaregiPlatformApi import smaregi_config
 from .entities import ErrorResponse
 from .config import Config
 
@@ -12,28 +12,25 @@ from typing import (
     Any,
     Dict,
     Tuple,
+    Optional
 )
 
 
 class BaseApi():
-    def __init__(self, config: 'Config'):
-        self.config = config
-        # self.logger = self.config.logger
-
     def _get_base64_encode(self, string):
         return base64.b64encode(string)
 
 
 class BaseIdentificationApi(BaseApi):
-    def _show_authorization_string(self):
+    def _get_authorization_string(self):
         return (
-            self.config.smaregi_client_id +
+            smaregi_config.smaregi_client_id +
             ":" +
-            self.config.smaregi_client_secret
+            smaregi_config.smaregi_client_secret
         ).encode()
 
     def _get_smaregi_auth(self):
-        string = self._show_authorization_string()
+        string = self._get_authorization_string()
         base = self._get_base64_encode(string)
         return "Basic " + str(base).split("'")[1]
 
@@ -45,17 +42,17 @@ class BaseIdentificationApi(BaseApi):
 
 
 class BaseServiceApi(BaseApi):
-    def _show_authorization_string(self):
-        return self.config.access_token.access_token
+    def _get_authorization_string(self):
+        return smaregi_config.access_token.access_token
 
     def _get_smaregi_auth(self):
-        string = self._show_authorization_string()
+        string = self._get_authorization_string()
         return "Bearer " + string
 
     def _get_header(self):
         return {
             'Authorization': self._get_smaregi_auth(),
-            'Content-Type': 'application/x-www-form-urlencoded',        
+            'Content-Type': 'application/x-www-form-urlencoded',
         }
 
     def _get_query(self, field=None, sort=None, where_dict=None):
@@ -134,7 +131,7 @@ class BaseServiceApi(BaseApi):
             body (dict): [description]
 
         Returns:
-            tuple[int, any]: status_code, response の tuple
+            Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
         """
         response = requests.post(uri, headers=header, data=json.dumps(body))
         result = response.json()
