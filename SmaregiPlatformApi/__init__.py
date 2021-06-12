@@ -7,7 +7,7 @@ from .pos import (
     ProductsApi,
     StoresApi
 )
-from .entities import *
+import SmaregiPlatformApi.entities as entities
 
 __all__ = [
     'AuthorizeApi',
@@ -15,10 +15,11 @@ __all__ = [
     'smaregi_config',
     'TransactionsApi',
     'ProductsApi',
-    'StoresApi'
+    'StoresApi',
+    'entities'
 ]
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
 smaregi_config = Config(
@@ -26,7 +27,7 @@ smaregi_config = Config(
     'contract_id',
     'client_id',
     'client_secret',
-    AccessToken(
+    entities.AccessToken(
         'access_token',
         datetime.datetime.now()
     )
