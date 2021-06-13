@@ -16,5 +16,3 @@ __all__ = [
     'StoresApi',
     'entities'
 ]
-
-__version__ = '0.1.3'

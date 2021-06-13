@@ -1,13 +1,11 @@
 import setuptools
 
-from SmaregiPlatformApi import __version__
-
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="SmaregiPlatformApi",
-    version=__version__,
+    version='0.1.3',
     author="shabaraba",
     author_email="work.shabaraba@gmail.com",
     description="Smaregi platform api library. It is unofficial.",
