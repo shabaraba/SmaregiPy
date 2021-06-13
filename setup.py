@@ -23,5 +23,8 @@ setuptools.setup(
     entry_points = {
         # 'console_scripts': ['sample_command = sample_command.sample_command:main']
     },
+    requires=[
+        'pytz'
+    ],
     python_requires='>=3.7',
 )
