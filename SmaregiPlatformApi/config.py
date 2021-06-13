@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional
+from typing import Optional, cast
 from logging import Logger
 import dataclasses
 
@@ -11,6 +11,7 @@ class Config():
     ENV_DIVISION_DEVELOPMENT = 'DEV'
     ENV_DIVISION_PRODUCTION = 'PROD'
 
+    env_division: str
     usr_info: str
     uri_access: str
     uri_api: str
@@ -36,9 +37,10 @@ class Config():
         self.access_token = access_token
         self.logger = logger
         if env_division is not None:
-            self.set_uri_by_env(env_division)
+            self.set_env(env_division)
 
-    def set_uri_by_env(self: 'Config', env_division: str) -> 'Config':
+    def set_env(self: 'Config', env_division: str) -> 'Config':
+        self.env_division = env_division
         if env_division is self.ENV_DIVISION_DEVELOPMENT:
             self.uri_access = 'https://id.smaregi.dev'
             self.uri_api = 'https://api.smaregi.dev'
@@ -50,16 +52,35 @@ class Config():
         return self
 
     def set_by_object(self: 'Config', updated_object: 'Config') -> 'Config':
-        self.env_division = updated_object.env_division
+        self.contract_id = updated_object.contract_id
         self.smaregi_client_id = updated_object.smaregi_client_id
         self.smaregi_client_secret = updated_object.smaregi_client_secret
-        self.uri_info = updated_object.uri_info
-        self.uri_access = updated_object.uri_access
-        self.env_division = updated_object.env_division
+        self.access_token = updated_object.access_token
+        self.logger = updated_object.logger
+        if updated_object.env_division is not None:
+            self.set_env(updated_object.env_division)
         return self
 
     def set_by_dict(self: 'Config', dictionary: dict) -> 'Config':
-        # TODO
+        contract_id = dictionary.get('contract_id')
+        if contract_id is not None and isinstance(str, contract_id):
+            self.contract_id = contract_id
+        smaregi_client_id = dictionary.get('smaregi_client_id')
+        if smaregi_client_id is not None and isinstance(str, smaregi_client_id):
+            self.smaregi_client_id = smaregi_client_id
+        smaregi_client_secret = dictionary.get('smaregi_client_secret')
+        if smaregi_client_secret is not None and isinstance(str, smaregi_client_secret):
+            self.smaregi_client_secret = smaregi_client_secret
+        access_token = dictionary.get('access_token')
+        if access_token is not None and isinstance(AccessToken, access_token):
+            self.access_token = access_token
+        logger = dictionary.get('logger')
+        if logger is not None and isinstance(Logger, logger):
+            self.logger = logger
+        env_division = dictionary.get('env_division')
+        if env_division is not None and isinstance(str, env_division):
+            self.set_env(env_division)
+
         return self
 
     def set_by_json_file(self: 'Config', file_path: str) -> 'Config':
