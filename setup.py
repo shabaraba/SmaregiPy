@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="SmaregiPlatformApi",
-    version='0.1.3',
+    version='0.1.4',
     author="shabaraba",
     author_email="work.shabaraba@gmail.com",
     description="Smaregi platform api library. It is unofficial.",
