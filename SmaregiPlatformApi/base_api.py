@@ -12,7 +12,10 @@ from typing import (
     Any,
     Dict,
     Tuple,
-    Optional
+    Optional,
+    List,
+    TypeVar,
+    Type
 )
 
 
@@ -42,6 +45,24 @@ class BaseIdentificationApi(BaseApi):
 
 
 class BaseServiceApi(BaseApi):
+    def all(self: 'BaseServiceApi') -> List['BaseServiceApi']:
+        pass
+
+    def list(self: 'BaseServiceApi', limit: Optional[int] = None, offset: Optional[int] = None) -> List['BaseServiceApi']:
+        pass
+
+    def get(self: 'BaseServiceApi', id: int) -> 'BaseServiceApi':
+        return self
+
+    def create(self: 'BaseServiceApi') -> 'BaseServiceApi':
+        return self
+
+    def update(self: 'BaseServiceApi') -> 'BaseServiceApi':
+        return self
+
+    def delete(self: 'BaseServiceApi') -> 'BaseServiceApi':
+        return self
+
     def _get_authorization_string(self):
         return smaregi_config.access_token.access_token
 

@@ -1,3 +1,4 @@
+import datetime
 from urllib.parse import urlencode
 from typing import (
     Any,
@@ -113,7 +114,12 @@ class ProductsApi(BaseServiceApi):
         return Product(response[1])
 
 
-class StoresApi(BaseServiceApi):
+class Stores(BaseServiceApi):
+    store_id: int
+    store_name: str
+    ins_date_time: datetime.datetime
+    upd_date_time: datetime.datetime
+
     def get_store_list(self, field=None, sort=None, where_dict=None) -> List['Store']:
         self.uri = smaregi_config.uri_pos + '/stores'
 
