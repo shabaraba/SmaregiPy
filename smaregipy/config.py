@@ -3,7 +3,7 @@ from typing import Optional, cast
 from logging import Logger
 import dataclasses
 
-from SmaregiPlatformApi.entities.authorize import AccessToken
+from smaregipy.entities.account import Account
 
 
 @dataclasses.dataclass
@@ -18,8 +18,8 @@ class Config():
     uri_pos: str
     smargi_client_id: str
     smargi_client_secret: str
-    access_token: AccessToken
     contract_id: str
+    access_token: Optional[Account.AccessToken]
     logger: Optional[Logger]
 
     def __init__(
@@ -28,7 +28,7 @@ class Config():
         contract_id: str,
         client_id: str,
         client_secret: str,
-        access_token: AccessToken,
+        access_token: Optional[Account.AccessToken] = None,
         logger: Optional[Logger] = None
     ):
         self.contract_id = contract_id
@@ -63,22 +63,22 @@ class Config():
 
     def set_by_dict(self: 'Config', dictionary: dict) -> 'Config':
         contract_id = dictionary.get('contract_id')
-        if contract_id is not None and isinstance(str, contract_id):
+        if contract_id is not None and isinstance(contract_id, str):
             self.contract_id = contract_id
         smaregi_client_id = dictionary.get('smaregi_client_id')
-        if smaregi_client_id is not None and isinstance(str, smaregi_client_id):
+        if smaregi_client_id is not None and isinstance(smaregi_client_id, str):
             self.smaregi_client_id = smaregi_client_id
         smaregi_client_secret = dictionary.get('smaregi_client_secret')
-        if smaregi_client_secret is not None and isinstance(str, smaregi_client_secret):
+        if smaregi_client_secret is not None and isinstance(smaregi_client_secret, str):
             self.smaregi_client_secret = smaregi_client_secret
         access_token = dictionary.get('access_token')
-        if access_token is not None and isinstance(AccessToken, access_token):
+        if access_token is not None and isinstance(access_token, Account.AccessToken):
             self.access_token = access_token
         logger = dictionary.get('logger')
-        if logger is not None and isinstance(Logger, logger):
+        if logger is not None and isinstance(logger, Logger):
             self.logger = logger
         env_division = dictionary.get('env_division')
-        if env_division is not None and isinstance(str, env_division):
+        if env_division is not None and isinstance(env_division, str):
             self.set_env(env_division)
 
         return self
@@ -96,13 +96,20 @@ class Config():
         return self
 
 
-smaregi_config = Config(
-    Config.ENV_DIVISION_DEVELOPMENT,
-    'contract_id',
-    'client_id',
-    'client_secret',
-    AccessToken(
-        'access_token',
-        datetime.datetime.now()
+def init_config(
+    env_division: str,
+    contract_id: str,
+    client_id: str,
+    client_secret: str,
+    access_token: Optional[Account.AccessToken] = None,
+    logger: Optional[Logger] = None
+    ) -> None:
+    global smaregi_config
+    smaregi_config = Config(
+        env_division=env_division,
+        contract_id=contract_id,
+        client_id=client_id,
+        client_secret=client_secret,
+        access_token=access_token,
+        logger=logger
     )
-)

@@ -5,14 +5,14 @@ from typing import (
     Dict,
     List
 )
-from SmaregiPlatformApi import smaregi_config
-from SmaregiPlatformApi.entities.product import Product
-from SmaregiPlatformApi.entities.store import Store
-from SmaregiPlatformApi.entities.transaction import TransactionHead, TransactionDetail
-from .base_api import BaseServiceApi
+from . import config
+from .entities.product import Product
+from .entities.store import Store as StoreEntity
+from .entities.transaction import TransactionHead, TransactionDetail
+from .base_api import BaseServiceUnitApi, BaseServiceCollectionApi
 
 
-class TransactionsApi(BaseServiceApi):
+class TransactionsApi(BaseServiceUnitApi):
     def get_transaction_head_list(
         self,
         field=None,
@@ -93,7 +93,7 @@ class TransactionsApi(BaseServiceApi):
         return responseData
 
 
-class ProductsApi(BaseServiceApi):
+class ProductsApi(BaseServiceUnitApi):
     def get_product_by_id(self, id: int, field = None, sort = None, where_dict:dict = None) -> 'Product':
         """商品取得APIを実施します
 
@@ -114,12 +114,7 @@ class ProductsApi(BaseServiceApi):
         return Product(response[1])
 
 
-class Stores(BaseServiceApi):
-    store_id: int
-    store_name: str
-    ins_date_time: datetime.datetime
-    upd_date_time: datetime.datetime
-
+class Store(StoreEntity, BaseServiceUnitApi):
     def get_store_list(self, field=None, sort=None, where_dict=None) -> List['Store']:
         self.uri = smaregi_config.uri_pos + '/stores'
 

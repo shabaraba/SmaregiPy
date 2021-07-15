@@ -2,7 +2,7 @@ from .transaction import TransactionHead, TransactionDetail
 from .product import Product
 from .store import Store
 from .error_response import ErrorResponse
-from .authorize import UserInfo, UserAccessToken, AccessToken
+from .account import Account
 
 __all__ = [
     'TransactionHead',
@@ -10,7 +10,5 @@ __all__ = [
     'Product',
     'Store',
     'ErrorResponse',
-    'UserInfo',
-    'UserAccessToken',
-    'AccessToken',
+    'Account',
 ]

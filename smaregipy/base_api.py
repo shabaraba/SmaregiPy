@@ -4,9 +4,8 @@ import json
 from logging import Logger
 from urllib.parse import urlencode
 
-from SmaregiPlatformApi.config import smaregi_config
 from .entities import ErrorResponse
-from .config import Config
+from . import config
 
 from typing import (
     Any,
@@ -20,63 +19,102 @@ from typing import (
 
 
 class BaseApi():
-    def _get_base64_encode(self, string):
+    config: 'Config'
+    def __init__(self, **kwargs):
+        pass
+
+    @staticmethod
+    def _get_base64_encode(string):
         return base64.b64encode(string)
+
+    def set_config(self, config: 'Config'):
+        self.config = config
+        return self
 
 
 class BaseIdentificationApi(BaseApi):
-    def _get_authorization_string(self):
-        return (
-            smaregi_config.smaregi_client_id +
+    @staticmethod
+    def _get_header():
+        authorization_string = (
+            config.smaregi_config.smaregi_client_id +
             ":" +
-            smaregi_config.smaregi_client_secret
+            config.smaregi_config.smaregi_client_secret
         ).encode()
-
-    def _get_smaregi_auth(self):
-        string = self._get_authorization_string()
-        base = self._get_base64_encode(string)
-        return "Basic " + str(base).split("'")[1]
-
-    def _get_header(self):
+        encoded_string = BaseIdentificationApi._get_base64_encode(authorization_string)
+        base64encoded = "Basic " + str(encoded_string).split("'")[1]
         return {
-            'Authorization': self._get_smaregi_auth(),
+            'Authorization': base64encoded,
             'Content-Type': 'application/x-www-form-urlencoded',
         }
 
 
-class BaseServiceApi(BaseApi):
-    def all(self: 'BaseServiceApi') -> List['BaseServiceApi']:
+Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
+
+class BaseServiceCollectionApi(BaseApi):
+    @classmethod
+    def get_all(cls: Type[Collection]) -> Collection:
+        result = cls()
+        return result
+
+    @classmethod
+    def get_list(cls:Type[Collection], limit: Optional[int] = None, offset: Optional[int] = None) -> Collection:
+        result = cls()
+        return result
+
+
+Unit = TypeVar('Unit', bound='BaseServiceUnitApi')
+
+class BaseServiceUnitApi(BaseApi):
+    UNIT_NAME: str
+
+    def __init__(self, kwargs):
         pass
 
-    def list(self: 'BaseServiceApi', limit: Optional[int] = None, offset: Optional[int] = None) -> List['BaseServiceApi']:
-        pass
+    @classmethod
+    def get(cls: Type[Unit], id: int,  **kwargs) -> Unit:
+        uri = "{endpoint}/{unit_name}/{unit_id}".format(
+            endpoint=smaregi_config.uri_pos,
+            unit_name=cls.UNIT_NAME,
+            unit_id=id
+        )
+        header = BaseServiceUnitApi._get_header()
+        body = BaseServiceUnitApi._get_query_for_detail(
+            field=None,
+            sort=None,
+            where_dict=kwargs
+        )
 
-    def get(self: 'BaseServiceApi', id: int) -> 'BaseServiceApi':
+        response = BaseServiceUnitApi._api_get(uri, header, body)
+        if response[0] != 200:
+            raise response[1]
+        response_data = response[1]
+
+        return cls(response_data)
+
+    @classmethod
+    def create(cls: Type[Unit], **kwargs) -> Unit:
+        result = cls(kwargs)
+        return result
+
+    def save(self: 'BaseServiceUnitApi', **kwargs) -> 'BaseServiceUnitApi':
         return self
 
-    def create(self: 'BaseServiceApi') -> 'BaseServiceApi':
+    def update(self: 'BaseServiceUnitApi', **kwargs) -> 'BaseServiceUnitApi':
         return self
 
-    def update(self: 'BaseServiceApi') -> 'BaseServiceApi':
-        return self
+    def delete(self: 'BaseServiceUnitApi', **kwargs) -> bool:
+        return True
 
-    def delete(self: 'BaseServiceApi') -> 'BaseServiceApi':
-        return self
-
-    def _get_authorization_string(self):
-        return smaregi_config.access_token.access_token
-
-    def _get_smaregi_auth(self):
-        string = self._get_authorization_string()
-        return "Bearer " + string
-
-    def _get_header(self):
+    @staticmethod
+    def _get_header():
+        auth = "Bearer " + smaregi_config.access_token.access_token
         return {
-            'Authorization': self._get_smaregi_auth(),
+            'Authorization': auth,
             'Content-Type': 'application/x-www-form-urlencoded',
         }
 
-    def _get_query(self, field=None, sort=None, where_dict=None):
+    @staticmethod
+    def _get_query(field=None, sort=None, where_dict=None):
         body = {
             'limit': 1000,
             'page': 1
@@ -94,7 +132,8 @@ class BaseServiceApi(BaseApi):
 
         return body
 
-    def _get_query_for_detail(self, field=None, sort=None, where_dict=None, **kwargs):
+    @staticmethod
+    def _get_query_for_detail(field=None, sort=None, where_dict=None, **kwargs):
         body = {
         }
         if (field is not None):
@@ -111,10 +150,8 @@ class BaseServiceApi(BaseApi):
 
         return body
 
-    def _get_request_body():
-        body = {}
-
-    def _api_get(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
+    @staticmethod
+    def _api_get(uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
         """APIを実施します
         link、pageがある場合、すべて実施してデータを結合します
 
@@ -161,3 +198,5 @@ class BaseServiceApi(BaseApi):
             return (response.status_code, error_response)
 
         return (response.status_code, result)
+
+
