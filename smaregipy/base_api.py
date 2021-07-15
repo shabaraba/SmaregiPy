@@ -3,6 +3,7 @@ import requests
 import json
 from logging import Logger
 from urllib.parse import urlencode
+import asyncio
 
 from .entities import ErrorResponse
 from . import config
@@ -50,64 +51,15 @@ class BaseIdentificationApi(BaseApi):
 
 Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
 
-class BaseServiceCollectionApi(BaseApi):
-    @classmethod
-    def get_all(cls: Type[Collection]) -> Collection:
-        result = cls()
-        return result
-
-    @classmethod
-    def get_list(cls:Type[Collection], limit: Optional[int] = None, offset: Optional[int] = None) -> Collection:
-        result = cls()
-        return result
-
-
-Unit = TypeVar('Unit', bound='BaseServiceUnitApi')
-
-class BaseServiceUnitApi(BaseApi):
+class BaseServiceApi(BaseApi):
     UNIT_NAME: str
-
-    def __init__(self, kwargs):
+    
+    def __init__(self, *args):
         pass
-
-    @classmethod
-    def get(cls: Type[Unit], id: int,  **kwargs) -> Unit:
-        uri = "{endpoint}/{unit_name}/{unit_id}".format(
-            endpoint=smaregi_config.uri_pos,
-            unit_name=cls.UNIT_NAME,
-            unit_id=id
-        )
-        header = BaseServiceUnitApi._get_header()
-        body = BaseServiceUnitApi._get_query_for_detail(
-            field=None,
-            sort=None,
-            where_dict=kwargs
-        )
-
-        response = BaseServiceUnitApi._api_get(uri, header, body)
-        if response[0] != 200:
-            raise response[1]
-        response_data = response[1]
-
-        return cls(response_data)
-
-    @classmethod
-    def create(cls: Type[Unit], **kwargs) -> Unit:
-        result = cls(kwargs)
-        return result
-
-    def save(self: 'BaseServiceUnitApi', **kwargs) -> 'BaseServiceUnitApi':
-        return self
-
-    def update(self: 'BaseServiceUnitApi', **kwargs) -> 'BaseServiceUnitApi':
-        return self
-
-    def delete(self: 'BaseServiceUnitApi', **kwargs) -> bool:
-        return True
 
     @staticmethod
     def _get_header():
-        auth = "Bearer " + smaregi_config.access_token.access_token
+        auth = "Bearer " + config.smaregi_config.access_token.access_token
         return {
             'Authorization': auth,
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -199,4 +151,95 @@ class BaseServiceUnitApi(BaseApi):
 
         return (response.status_code, result)
 
+
+class BaseServiceCollectionApi(BaseServiceApi):
+    UNIT_NAME: str
+
+    def __init__(self, *args):
+        pass
+
+    @classmethod
+    async def get_all(cls: Type[Collection], **kwargs) -> Collection:
+        uri = "{endpoint}/{unit_name}".format(
+            endpoint=config.smaregi_config.uri_pos,
+            unit_name=cls.UNIT_NAME
+        )
+        header = cls._get_header()
+        body = cls._get_query(
+            field=None,
+            sort=None,
+            where_dict=kwargs
+        )
+
+        response = BaseServiceRecordApi._api_get(uri, header, body)
+        if response[0] != 200:
+            raise response[1]
+        response_data = response[1]
+
+        return cls(response_data)
+
+    @classmethod
+    async def get_list(cls:Type[Collection], limit: Optional[int] = None, offset: Optional[int] = None, **kwargs) -> Collection:
+        uri = "{endpoint}/{unit_name}/{unit_id}".format(
+            endpoint=config.smaregi_config.uri_pos,
+            unit_name=cls.UNIT_NAME,
+            unit_id=id
+        )
+        header = cls._get_header()
+        body = cls._get_query_for_detail(
+            field=None,
+            sort=None,
+            where_dict=kwargs
+        )
+
+        response = BaseServiceRecordApi._api_get(uri, header, body)
+        if response[0] != 200:
+            raise response[1]
+        response_data = response[1]
+
+        return cls(response_data)
+
+
+Unit = TypeVar('Unit', bound='BaseServiceRecordApi')
+
+class BaseServiceRecordApi(BaseServiceApi):
+    UNIT_NAME: str
+
+    def __init__(self, *args):
+        pass
+
+    @classmethod
+    async def get(cls: Type[Unit], id: int,  **kwargs) -> Unit:
+        uri = "{endpoint}/{unit_name}/{unit_id}".format(
+            endpoint=config.smaregi_config.uri_pos,
+            unit_name=cls.UNIT_NAME,
+            unit_id=id
+        )
+        header = cls._get_header()
+        body = cls._get_query_for_detail(
+            field=None,
+            sort=None,
+            where_dict=kwargs
+        )
+
+        response = BaseServiceRecordApi._api_get(uri, header, body)
+        if response[0] != 200:
+            raise response[1]
+        response_data = response[1]
+
+        return cls(response_data)
+
+    @classmethod
+    async def create(cls: Type[Unit], **kwargs) -> Unit:
+        result = cls(kwargs)
+        return result
+
+    async def save(self: 'BaseServiceRecordApi', **kwargs) -> 'BaseServiceRecordApi':
+        return self
+
+    async def update(self: 'BaseServiceRecordApi', **kwargs) -> 'BaseServiceRecordApi':
+        return self
+
+    async def delete(self: 'BaseServiceRecordApi', **kwargs) -> bool:
+        return True
 

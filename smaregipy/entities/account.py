@@ -49,7 +49,7 @@ class Account():
             self._expiration_datetime: datetime.datetime = _expiration_datetime
 
         @property
-        def access_token(self):
+        def access_token(self) -> str:
             return self._access_token
 
         @access_token.setter
@@ -57,7 +57,7 @@ class Account():
             self._access_token = value
 
         @property
-        def expiration_datetime(self):
+        def expiration_datetime(self) -> datetime.datetime:
             return self._expiration_datetime
 
         @expiration_datetime.setter

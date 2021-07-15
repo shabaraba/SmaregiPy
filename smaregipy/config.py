@@ -113,3 +113,8 @@ def init_config(
         access_token=access_token,
         logger=logger
     )
+
+def update_access_token(access_token: Account.AccessToken) -> None:
+    global smaregi_config
+    smaregi_config.access_token = access_token
+

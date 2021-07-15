@@ -7,12 +7,12 @@ from typing import (
 )
 from . import config
 from .entities.product import Product
-from .entities.store import Store as StoreEntity
+from .entities.store import StoreEntity, StoreCollectionEntity
 from .entities.transaction import TransactionHead, TransactionDetail
-from .base_api import BaseServiceUnitApi, BaseServiceCollectionApi
+from .base_api import BaseServiceRecordApi, BaseServiceCollectionApi
 
 
-class TransactionsApi(BaseServiceUnitApi):
+class TransactionsApi(BaseServiceRecordApi):
     def get_transaction_head_list(
         self,
         field=None,
@@ -93,7 +93,7 @@ class TransactionsApi(BaseServiceUnitApi):
         return responseData
 
 
-class ProductsApi(BaseServiceUnitApi):
+class ProductsApi(BaseServiceRecordApi):
     def get_product_by_id(self, id: int, field = None, sort = None, where_dict:dict = None) -> 'Product':
         """商品取得APIを実施します
 
@@ -114,29 +114,8 @@ class ProductsApi(BaseServiceUnitApi):
         return Product(response[1])
 
 
-class Store(StoreEntity, BaseServiceUnitApi):
-    def get_store_list(self, field=None, sort=None, where_dict=None) -> List['Store']:
-        self.uri = smaregi_config.uri_pos + '/stores'
+class Store(StoreEntity, BaseServiceRecordApi):
+    UNIT_NAME = 'stores'
 
-        header = self._get_header()
-        body = self._get_query('storeId,storeName', sort, where_dict)
-
-        response = self._api_get(self.uri, header, body)
-        if response[0] != 200:
-            raise response[1]
-        response_data = response[1]
-
-        return [Store(data) for data in response_data]
-
-    def get_store_by_id(self, id, ield=None, sort=None, where_dict=None) -> 'Store':
-        self.uri = smaregi_config.uri_pos + '/stores/' + id
-
-        header = self._get_header()
-        body = self._get_query_for_detail('storeId,storeName', sort, where_dict)
-
-        response = self._api_get(self.uri, header, body)
-        if response[0] != 200:
-            raise response[1]
-        response_data = response[1]
-
-        return Store(response_data)
+class StoreCollection(StoreCollectionEntity, BaseServiceCollectionApi):
+    UNIT_NAME = 'stores'

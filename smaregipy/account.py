@@ -32,11 +32,15 @@ class Account(AccountEntity, BaseIdentificationApi):
         if response.status_code != 200:
             error_response = ErrorResponse(result)
             return None
-        return Account(
+        account = Account(
             contract_id=contract_id,
             access_token=cast(str, result.get('access_token')),
             access_token_expiration_datetime=datetime.datetime.now(pytz.timezone('Asia/Tokyo')) + datetime.timedelta(seconds=result['expires_in'])
         )
+
+        config.update_access_token(account.access_token)
+
+        return account
 
 class AuthorizeApi(BaseIdentificationApi):
     def __init__(self, redirect_uri):

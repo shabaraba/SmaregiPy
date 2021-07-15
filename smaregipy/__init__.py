@@ -10,7 +10,7 @@ __all__ = [
     'smaregi_config',
     'TransactionsApi',
     'ProductsApi',
-    'Stores',
+    'Store',
     'entities'
 ]
 
