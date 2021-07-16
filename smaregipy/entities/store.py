@@ -1,10 +1,11 @@
-from typing import List, Optional
 import dataclasses
+from typing import List, Optional
 import datetime
 
+from .base_entity import BaseEntity
 
 @dataclasses.dataclass
-class StoreEntity:
+class StoreEntity(BaseEntity):
     store_id: Optional[int]
     store_name: Optional[str]
     ins_date_time: Optional[datetime.datetime]
@@ -16,9 +17,9 @@ class StoreEntity:
         self.ins_date_time = data.get('insDateTime')
         self.upd_date_time = data.get('updDateTime')
 
-@dataclasses.dataclass
-class StoreCollectionEntity:
-    records:List
+        self._id = self.store_id
 
-    def __init__(self, data: List):
-        self.records = [StoreEntity(each_data) for each_data in data]
+    def to_api_request_body(self) -> dict:
+        return {
+            "storeName": self.store_name,
+        }

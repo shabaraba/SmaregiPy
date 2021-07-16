@@ -5,9 +5,6 @@ from logging import Logger
 from urllib.parse import urlencode
 import asyncio
 
-from .entities import ErrorResponse
-from . import config
-
 from typing import (
     Any,
     Dict,
@@ -15,22 +12,32 @@ from typing import (
     Optional,
     List,
     TypeVar,
-    Type
+    Type,
+    Union
 )
+
+from .exceptions import ResponseException
+from . import config
+from .entities.base_entity import BaseEntity
 
 
 class BaseApi():
-    config: 'Config'
-    def __init__(self, **kwargs):
-        pass
+    class Response():
+        KEY_STATUS = 0  # api response array key 0 is status code
+        KEY_DATA = 1  # api resposne array key 1 is response data
+        KEY_ERROR = 1  # when error, api resposne array key 1 is error message
+
+        STATUS_SUCCESS = 200
+        STATUS_ACCEPTED = 202
+        STATUS_BAD_REQUEST_ERROR = 400
+        STATUS_UNAUTHORIZED_ERROR = 401
+        STATUS_FORBIDDEN_ERROR = 403
+        STATUS_NOT_FOUND_ERROR = 404
+        STATUS_FATAL_ERROR = 503
 
     @staticmethod
     def _get_base64_encode(string):
         return base64.b64encode(string)
-
-    def set_config(self, config: 'Config'):
-        self.config = config
-        return self
 
 
 class BaseIdentificationApi(BaseApi):
@@ -49,13 +56,41 @@ class BaseIdentificationApi(BaseApi):
         }
 
 
-Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
+BaseService = TypeVar('BaseService', bound='BaseServiceApi')
 
 class BaseServiceApi(BaseApi):
-    UNIT_NAME: str
-    
-    def __init__(self, *args):
+    PATH_PARAMS: List[str]
+    PATH_PARAM_VALUES: List[str]
+
+    def __new__(
+        cls: Type[BaseService],
+        *args,
+        fetched_data: bool = True,
+        **kwargs
+    ) -> Union['BaseServiceApi', Type[BaseService]]:
+        if fetched_data is True:
+            # APIでデータを取得した場合のみinitでインスタンス化する
+            return super().__new__(cls)
+        else:
+            # 取得していない場合はインスタンス化せずクラスを返す
+            return cls
+
+    def __init__(self, *args, **kwargs):
         pass
+
+    @classmethod
+    def _get_uri(cls: Type[BaseService], path_params: Optional[Dict[str, Optional[str]]] = None) -> str:
+        return "{endpoint}/{path_list}".format(
+            endpoint=config.smaregi_config.uri_pos,
+            path_list="/".join(
+                [
+                    "{path}{params}".format(
+                        path=k,
+                        params="/{}".format(v) if v is not None else ""
+                    ) for k, v in path_params.items()
+                ]
+            ) if path_params is not None else "",
+        )
 
     @staticmethod
     def _get_header():
@@ -66,18 +101,26 @@ class BaseServiceApi(BaseApi):
         }
 
     @staticmethod
-    def _get_query(field=None, sort=None, where_dict=None):
-        body = {
-            'limit': 1000,
-            'page': 1
-        }
+    def _get_query(
+        field: Optional[List[str]] = None,
+        sort: Optional[Dict[str, str]] = None,
+        limit: Optional[int] = None,
+        page: Optional[int] = None,
+        where_dict: Optional[Dict[Any, str]] = None
+    ):
+        body = { }
         if (field is not None):
             body.update({
-                'fields': field
+                'fields': ','.join(field)
             })
         if (sort is not None):
             body.update({
-                'sort': sort
+                'sort': ','.join(' '.join(["{params}:{ascending}".format(k, v) for k, v in sort.items()]))
+            })
+        if (limit is not None and page is not None):
+            body.update({
+                'limit': limit,
+                'page': page
             })
         if (where_dict is not None):
             body.update(where_dict)
@@ -85,26 +128,8 @@ class BaseServiceApi(BaseApi):
         return body
 
     @staticmethod
-    def _get_query_for_detail(field=None, sort=None, where_dict=None, **kwargs):
-        body = {
-        }
-        if (field is not None):
-            body.update({
-                'fields': field
-            })
-        if (sort is not None):
-            body.update({
-                'sort': sort
-            })
-        if (where_dict is not None):
-            body.update(where_dict)
-        body.update(kwargs)
-
-        return body
-
-    @staticmethod
-    def _api_get(uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
-        """APIを実施します
+    def _api_get(uri: str, header: Dict, body: Dict, all: bool = False) -> Tuple[int, Any]:
+        """GETのAPIを実施します
         link、pageがある場合、すべて実施してデータを結合します
 
         Args:
@@ -116,19 +141,28 @@ class BaseServiceApi(BaseApi):
             Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
         """
         response = requests.get(uri, headers=header, params=urlencode(body))
+        if response.status_code not in [
+            BaseApi.Response.STATUS_SUCCESS,
+            BaseApi.Response.STATUS_ACCEPTED,
+        ]:
+            raise ResponseException(
+                response.json()
+            )
         result_list = response.json()
-        if response.status_code != 200:
-            error_response = ErrorResponse(result_list)
-            return (response.status_code, error_response)
 
-        while (('link' in response.headers) and ('next' in response.links)):
-            print(response.links)
-            uriNext = response.links['next']['url']
-            response = requests.get(uriNext, headers=header)
-            if response.status_code != 200:
-                error_response = ErrorResponse(result_list)
-                return (response.status_code, error_response)
-            result_list.extend(response.json())
+        if all is True:
+            while (('link' in response.headers) and ('next' in response.links)):
+                print(response.links)
+                uriNext = response.links['next']['url']
+                response = requests.get(uriNext, headers=header)
+                if response.status_code not in [
+                    BaseApi.Response.STATUS_SUCCESS,
+                    BaseApi.Response.STATUS_ACCEPTED,
+                ]:
+                    raise ResponseException(
+                        response.json()
+                    )
+                result_list.extend(response.json())
 
         return (response.status_code, result_list)
 
@@ -145,88 +179,145 @@ class BaseServiceApi(BaseApi):
         """
         response = requests.post(uri, headers=header, data=json.dumps(body))
         result = response.json()
-        if response.status_code != 200:
-            error_response = ErrorResponse(result)
-            return (response.status_code, error_response)
+        if response.status_code not in [
+            BaseApi.Response.STATUS_SUCCESS,
+            BaseApi.Response.STATUS_ACCEPTED,
+        ]:
+            raise ResponseException(
+                response.json()
+            )
+
+        return (response.status_code, result)
+
+    def _api_patch(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
+        """PATCHのAPIを実施します
+
+        Args:
+            uri (str): [description]
+            header (dict): [description]
+            body (dict): [description]
+
+        Returns:
+            Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
+        """
+        response = requests.patch(uri, headers=header, data=json.dumps(body))
+        result = response.json()
+        if response.status_code not in [
+            BaseApi.Response.STATUS_SUCCESS,
+            BaseApi.Response.STATUS_ACCEPTED,
+        ]:
+            raise ResponseException(
+                response.json()
+            )
 
         return (response.status_code, result)
 
 
-class BaseServiceCollectionApi(BaseServiceApi):
-    UNIT_NAME: str
+Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
 
-    def __init__(self, *args):
-        pass
+
+class BaseServiceCollectionApi(BaseServiceApi):
+    records:Dict[str, Any]
+
+    def __repr__(self) -> str:
+        return str(self.records)
 
     @classmethod
-    async def get_all(cls: Type[Collection], **kwargs) -> Collection:
-        uri = "{endpoint}/{unit_name}".format(
-            endpoint=config.smaregi_config.uri_pos,
-            unit_name=cls.UNIT_NAME
-        )
+    async def get_all(
+        cls: Type[Collection],
+        field: Optional[List] = None,
+        sort: Optional[Dict[str, str]] = None,
+        **kwargs
+    ) -> Collection:
+        path_param_values = [None for v in cls.PATH_PARAMS]
+        uri = cls._get_uri(dict(zip(cls.PATH_PARAMS, path_param_values)))
         header = cls._get_header()
         body = cls._get_query(
-            field=None,
-            sort=None,
+            field=field,
+            sort=sort,
             where_dict=kwargs
         )
 
-        response = BaseServiceRecordApi._api_get(uri, header, body)
-        if response[0] != 200:
-            raise response[1]
-        response_data = response[1]
+        try:
+            response = cls._api_get(uri, header, body)
+        except ResponseException as e:
+            raise e
+        response_data = response[cls.Response.KEY_DATA]
 
         return cls(response_data)
 
     @classmethod
-    async def get_list(cls:Type[Collection], limit: Optional[int] = None, offset: Optional[int] = None, **kwargs) -> Collection:
-        uri = "{endpoint}/{unit_name}/{unit_id}".format(
-            endpoint=config.smaregi_config.uri_pos,
-            unit_name=cls.UNIT_NAME,
-            unit_id=id
-        )
+    async def get_list(
+        cls:Type[Collection],
+        field: Optional[List] = None,
+        sort: Optional[Dict[str, str]] = None,
+        limit: Optional[int] = None,
+        page: Optional[int] = None,
+        **kwargs
+    ) -> Collection:
+        path_param_values = [None] * len(cls.PATH_PARAMS)
+        uri = cls._get_uri(dict(zip(cls.PATH_PARAMS, path_param_values)))
         header = cls._get_header()
-        body = cls._get_query_for_detail(
-            field=None,
-            sort=None,
+        body = cls._get_query(
+            field=field,
+            sort=sort,
+            limit=limit,
+            page=page,
             where_dict=kwargs
         )
 
-        response = BaseServiceRecordApi._api_get(uri, header, body)
-        if response[0] != 200:
-            raise response[1]
-        response_data = response[1]
+        try:
+            response = cls._api_get(uri, header, body)
+        except ResponseException as e:
+            raise e
 
-        return cls(response_data)
+        response_data = response[cls.Response.KEY_DATA]
+
+        return cls(response_data, fetched_data=True)
+
+    def id(self: 'BaseServiceCollectionApi', value: int) -> 'BaseServiceRecordApi':
+        """
+            collection内から該当するidのrecordを返します
+        """
+        if self.records is not None:
+            target = self.records.get(str(value))
+            if isinstance(target, BaseServiceRecordApi):
+                target.path_params_id_list.append(value)
+                return target
+        raise Exception("存在しないIDです")
 
 
 Unit = TypeVar('Unit', bound='BaseServiceRecordApi')
 
-class BaseServiceRecordApi(BaseServiceApi):
-    UNIT_NAME: str
-
-    def __init__(self, *args):
-        pass
+class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
 
     @classmethod
-    async def get(cls: Type[Unit], id: int,  **kwargs) -> Unit:
-        uri = "{endpoint}/{unit_name}/{unit_id}".format(
-            endpoint=config.smaregi_config.uri_pos,
-            unit_name=cls.UNIT_NAME,
-            unit_id=id
-        )
+    def id(cls: Type[Unit], value: int) -> Unit:
+        self = cls(fetched_data=False)
+        self.path_params_id_list.append(value)
+        return self
+
+    @classmethod
+    async def get(
+        cls: Type[Unit],
+        field: Optional[List] = None,
+        **kwargs
+    ) -> Unit:
+        path_param_values = [str(id) for id in cls.path_params_id_list]
+        uri = cls._get_uri(dict(zip(cls.PATH_PARAMS, path_param_values)))
+        # uri = cls._get_uri({cls.UNIT_NAME: str(cls._id)})
         header = cls._get_header()
-        body = cls._get_query_for_detail(
-            field=None,
-            sort=None,
+        body = cls._get_query(
+            field=field,
             where_dict=kwargs
         )
 
-        response = BaseServiceRecordApi._api_get(uri, header, body)
-        if response[0] != 200:
-            raise response[1]
-        response_data = response[1]
+        try:
+            response = cls._api_get(uri, header, body)
+        except ResponseException as e:
+            raise e
 
+        response_data = response[cls.Response.KEY_DATA]
         return cls(response_data)
 
     @classmethod
@@ -235,9 +326,23 @@ class BaseServiceRecordApi(BaseServiceApi):
         return result
 
     async def save(self: 'BaseServiceRecordApi', **kwargs) -> 'BaseServiceRecordApi':
+        uri = self._get_uri([str(self._id)])
+        header = self._get_header()
+        for k, v in kwargs.items():
+            if k in self.__dict__.keys():
+                setattr(self, k, v)
+        self.__api_post(uri, header, self.to_api_request_body())
         return self
 
     async def update(self: 'BaseServiceRecordApi', **kwargs) -> 'BaseServiceRecordApi':
+        path_param_values = [str(id) for id in self.path_params_id_list]
+        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
+
+        header = self._get_header()
+        for k, v in kwargs.items():
+            if k in self.__dict__.keys():
+                setattr(self, k, v)
+        self._api_patch(uri, header, self.to_api_request_body())
         return self
 
     async def delete(self: 'BaseServiceRecordApi', **kwargs) -> bool:

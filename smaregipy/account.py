@@ -7,7 +7,7 @@ import requests
 
 from . import config
 from .base_api import BaseIdentificationApi
-from .entities import ErrorResponse
+from .exceptions import ResponseException
 from .entities.account import Account as AccountEntity
 
 
@@ -15,7 +15,15 @@ AccountType = TypeVar('AccountType', bound='Account')
 
 class Account(AccountEntity, BaseIdentificationApi):
     @classmethod
-    def authorize(cls: Type[AccountType], contract_id: str, scope_list: List[str]) -> Union['Account', None]:
+    def authentication_uri(cls: Type[AccountType], contract_id: str, scope_list: List[str]) -> None:
+        pass
+
+    @classmethod
+    def authenticate(cls: Type[AccountType], code: str, state: str) -> None:
+        pass
+
+    @classmethod
+    def authorize(cls: Type[AccountType], contract_id: str, scope_list: List[str]) -> 'Account':
         url = "{endpoint}/app/{contract_id}/token".format(
             endpoint=config.smaregi_config.uri_access,
             contract_id=contract_id
@@ -26,12 +34,12 @@ class Account(AccountEntity, BaseIdentificationApi):
             'grant_type': 'client_credentials',
             'scope': scope_string
         }
-        response = requests.post(url, headers=headers, data=urlencode(body))
-        result = response.json()
+        try:
+            response = requests.post(url, headers=headers, data=urlencode(body))
+        except ResponseException as e:
+            raise e
 
-        if response.status_code != 200:
-            error_response = ErrorResponse(result)
-            return None
+        result = response.json()
         account = Account(
             contract_id=contract_id,
             access_token=cast(str, result.get('access_token')),
@@ -41,6 +49,7 @@ class Account(AccountEntity, BaseIdentificationApi):
         config.update_access_token(account.access_token)
 
         return account
+
 
 class AuthorizeApi(BaseIdentificationApi):
     def __init__(self, redirect_uri):

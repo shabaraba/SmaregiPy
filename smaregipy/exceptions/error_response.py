@@ -1,4 +1,4 @@
-class ErrorResponse(Exception):
+class ResponseException(Exception):
     def __init__(self, response: dict):
         self.type = response.get('type')
         self.title = response.get('title')
