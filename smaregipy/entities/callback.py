@@ -6,13 +6,13 @@ from .base_entity import BaseEntity
 @dataclasses.dataclass
 class CallbackEntity(BaseEntity):
     uuid: Optional[str]  # or request_code
-    callback_uri: Optional[str]
+    callback_url: Optional[str]
     state: Optional[str]
 
     def __init__(self, data: dict):
-        self.uuid = data.get('storeId')
-        self.callback_uri = data.get('storeName')
-        self.state = data.get('insDateTime')
+        self.uuid = data.get('uuid')
+        self.callback_url = data.get('callback_url')
+        self.state = data.get('state')
 
 
     def to_api_request_body(self) -> dict:

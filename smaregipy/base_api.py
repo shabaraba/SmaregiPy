@@ -1,6 +1,7 @@
 import base64
 import requests
 import json
+import copy
 from logging import Logger
 from urllib.parse import urlencode
 import asyncio
@@ -68,7 +69,10 @@ class BaseServiceApi(BaseApi):
         pass
 
     @classmethod
-    def _get_uri(cls: Type[BaseService], path_params: Optional[Dict[str, Optional[str]]] = None) -> str:
+    def _get_uri(
+        cls: Type[BaseService],
+        path_params: Optional[Dict[str, Optional[str]]] = None
+    ) -> str:
         return "{endpoint}/{path_list}".format(
             endpoint=config.smaregi_config.uri_pos,
             path_list="/".join(
@@ -205,8 +209,17 @@ class BaseServiceApi(BaseApi):
 Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
 
 
-class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
-    records:Dict[str, Any]
+class BaseServiceCollectionApi(BaseServiceApi):
+    RECORD_NAME: str
+
+    def __init__(
+        self,
+        data: List = [],
+        path_params: Dict[str, Union[str, None]] = {},
+    ) -> None:
+        self.records:Dict[str, Any]
+        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
+        self.path_params[self.RECORD_NAME] = None
 
     def __new__(
         cls: Type[BaseService],
@@ -232,8 +245,7 @@ class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
         sort: Optional[Dict[str, str]] = None,
         **kwargs
     ) -> 'BaseServiceCollectionApi':
-        path_param_values = [(str(id) if id is not None else None) for id in self.path_params_id_list]
-        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
+        uri = self._get_uri(self.path_params)
         header = self._get_header()
         body = self._get_query(
             field=field,
@@ -247,7 +259,7 @@ class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
             raise e
         response_data = response[self.Response.KEY_DATA]
 
-        return self.__class__(response_data, fetched_data=True)
+        return self.__class__(response_data, path_params=self.path_params)
 
     async def get_list(
         self: 'BaseServiceCollectionApi',
@@ -257,8 +269,7 @@ class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
         page: Optional[int] = None,
         **kwargs
     ) -> 'BaseServiceCollectionApi':
-        path_param_values = [None] * len(self.PATH_PARAMS)
-        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
+        uri = self._get_uri(self.path_params)
         header = self._get_header()
         body = self._get_query(
             field=field,
@@ -275,7 +286,7 @@ class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
 
         response_data = response[self.Response.KEY_DATA]
 
-        return self.__class__(response_data, fetched_data=True)
+        return self.__class__(response_data, path_params=self.path_params)
 
     def id(self: 'BaseServiceCollectionApi', value: int) -> 'BaseServiceRecordApi':
         """
@@ -284,7 +295,7 @@ class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
         if self.records is not None:
             target = self.records.get(str(value))
             if isinstance(target, BaseServiceRecordApi):
-                target.path_params_id_list.append(value)
+                target.path_params[self.RECORD_NAME] = str(value)
                 return target
         raise Exception("存在しないIDです")
 
@@ -292,23 +303,20 @@ class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
 Unit = TypeVar('Unit', bound='BaseServiceRecordApi')
 
 class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
-    def __new__(
-        cls: Type[BaseService],
-        *args,
+    RECORD_NAME: str
+
+
+    def __init__(
+        self,
         fetched_data: bool = False,
+        path_params: Dict[str, Union[str, None]] = {},
         **kwargs
-    ) -> 'BaseServiceRecordApi':
-        if fetched_data is True:
-            # APIでデータを取得した場合のみentityのinitでインスタンス化する
-            self = super().__new__(cls)
-        else:
-            # 取得していない場合はserviceApiのinitでインスタンス化する
-            self = BaseServiceApi.__new__(cls)
-        self.path_params_id_list = []
-        return self
+    ) -> None:
+        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
+        self.path_params[self.RECORD_NAME] = None
 
     def id(self: 'BaseServiceRecordApi', value: int) -> 'BaseServiceRecordApi':
-        self.path_params_id_list.append(value)
+        self.path_params[self.RECORD_NAME] = str(value)
         return self
 
     async def get(
@@ -316,9 +324,7 @@ class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
         field: Optional[List] = None,
         **kwargs
     ) -> 'BaseServiceRecordApi':
-        path_param_values = [str(id) for id in self.path_params_id_list]
-        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
-        # uri = cls._get_uri({cls.UNIT_NAME: str(cls._id)})
+        uri = self._get_uri(self.path_params)
         header = self._get_header()
         body = self._get_query(
             field=field,
@@ -330,8 +336,12 @@ class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
         except ResponseException as e:
             raise e
 
-        response_data = response[self.Response.KEY_DATA]
-        return self.__class__(response_data, fetched_data=True)
+        response_data: Dict = response[self.Response.KEY_DATA]
+        return self.__class__(
+            data=response_data,
+            fetched_data=True,
+            path_params=self.path_params
+        )
 
     @classmethod
     async def create(cls: Type[Unit], **kwargs) -> Unit:
@@ -348,8 +358,7 @@ class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
         return self
 
     async def update(self: 'BaseServiceRecordApi', **kwargs) -> 'BaseServiceRecordApi':
-        path_param_values = [str(id) for id in self.path_params_id_list]
-        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
+        uri = self._get_uri(self.path_params)
 
         header = self._get_header()
         for k, v in kwargs.items():
