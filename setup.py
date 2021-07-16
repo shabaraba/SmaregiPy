@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="smaregipy",
-    version='0.1.4',
+    version='0.2.0',
     author="shabaraba",
     author_email="work.shabaraba@gmail.com",
     description="Smaregi platform api library. It is unofficial.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/shabaraba/smaregiplatformApi",
+    url="https://github.com/shabaraba/smaregipy",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
