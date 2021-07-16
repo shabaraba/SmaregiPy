@@ -23,16 +23,6 @@ class Account():
         if user_access_token is not None:
             self.user_access_token = Account.UserAccessToken(user_access_token)
 
-    class UserInfo():
-        def __init__(self, json):
-            self._sub = json['sub']
-            self._contract_id = json['contract']['id']
-            self._is_owner = json['contract']['is_owner']
-
-        @property
-        def contract_id(self):
-            return self._contract_id
-
 
     class UserAccessToken():
         def __init__(self, _access_token):
