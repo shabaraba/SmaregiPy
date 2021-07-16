@@ -18,7 +18,7 @@ class Config():
     uri_pos: str
     smargi_client_id: str
     smargi_client_secret: str
-    contract_id: str
+    contract_id: Optional[str]
     redirect_uri: Optional[str]
     access_token: Optional[Account.AccessToken]
     logger: Optional[Logger]
@@ -26,9 +26,9 @@ class Config():
     def __init__(
         self,
         env_division: str,
-        contract_id: str,
         client_id: str,
         client_secret: str,
+        contract_id: Optional[str] = None,
         redirect_uri: Optional[str] = None,
         access_token: Optional[Account.AccessToken] = None,
         logger: Optional[Logger] = None
@@ -51,15 +51,16 @@ class Config():
             self.uri_access = 'https://id.smaregi.jp'
             self.uri_api = 'https://api.smaregi.jp'
         self.uri_info = self.uri_access + 'userinfo'
-        self.uri_pos = self.uri_api + '/' + self.contract_id + '/pos'
+        if self.contract_id is not None:
+            self.uri_pos = self.uri_api + '/' + self.contract_id + '/pos'
         return self
 
 
 def init_config(
     env_division: str,
-    contract_id: str,
     client_id: str,
     client_secret: str,
+    contract_id: Optional[str],
     redirect_uri: Optional[str],
     access_token: Optional[Account.AccessToken] = None,
     logger: Optional[Logger] = None
@@ -67,9 +68,9 @@ def init_config(
     global smaregi_config
     smaregi_config = Config(
         env_division=env_division,
-        contract_id=contract_id,
         client_id=client_id,
         client_secret=client_secret,
+        contract_id=contract_id,
         redirect_uri=redirect_uri,
         access_token=access_token,
         logger=logger
