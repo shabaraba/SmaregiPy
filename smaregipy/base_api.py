@@ -1,6 +1,7 @@
 import base64
 import requests
 import json
+import copy
 from logging import Logger
 from urllib.parse import urlencode
 import asyncio
@@ -59,23 +60,6 @@ class BaseIdentificationApi(BaseApi):
 BaseService = TypeVar('BaseService', bound='BaseServiceApi')
 
 class BaseServiceApi(BaseApi):
-    RECORD_NAME: str
-    PATH_PARAMS: List[str]
-    PATH_PARAM_VALUES: List[str]
-
-
-    def __init__(
-        self,
-        path_params: Dict[str, Union[str, None]] = {},
-        fetched_data: Optional[bool] = False
-    ) -> None:
-        self.path_params: Dict[str, Union[str, None]] = path_params
-
-        self.path_params[self.RECORD_NAME] = None
-        self.fetched_data = fetched_data
-        
-        pass
-
     @classmethod
     def _get_uri(
         cls: Type[BaseService],
@@ -220,15 +204,13 @@ Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
 class BaseServiceCollectionApi(BaseServiceApi):
     RECORD_NAME: str
 
-    records:Dict[str, Any]
-    path_params: Dict[str, Union[str, None]]
-
     def __init__(
         self,
         data: List = [],
         path_params: Dict[str, Union[str, None]] = {},
     ) -> None:
-        self.path_params = path_params
+        self.records:Dict[str, Any]
+        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
         self.path_params[self.RECORD_NAME] = None
 
     def __repr__(self) -> str:
@@ -300,7 +282,6 @@ Unit = TypeVar('Unit', bound='BaseServiceRecordApi')
 class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
     RECORD_NAME: str
 
-    path_params: Dict[str, Union[str, None]]
 
     def __init__(
         self,
@@ -308,7 +289,7 @@ class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
         path_params: Dict[str, Union[str, None]] = {},
         **kwargs
     ) -> None:
-        self.path_params = path_params
+        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
         self.path_params[self.RECORD_NAME] = None
 
     def id(self: 'BaseServiceRecordApi', value: int) -> 'BaseServiceRecordApi':

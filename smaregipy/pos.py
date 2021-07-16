@@ -1,4 +1,3 @@
-import json
 from typing import (
     Any,
     TypeVar,
@@ -9,90 +8,11 @@ from typing import (
     Union,
     cast
 )
+from . import config
 from . import entities
+from .entities.base_entity import BaseEntity
 from .exceptions import ResponseException
 from .base_api import BaseServiceRecordApi, BaseServiceCollectionApi
-
-
-# class TransactionsApi(BaseServiceRecordApi):
-#     def get_transaction_head_list(
-#         self,
-#         field=None,
-#         sort=None,
-#         where_dict=None
-#     ) -> List[TransactionHead]:
-#         self.uri = smaregi_config.uri_pos + '/transactions'
-
-#         header = self._get_header()
-#         body = self._get_query(sort=sort, where_dict=where_dict)
-
-#         response = self._api_get(self.uri, header, body)
-#         if response[0] != 200:
-#             raise Exception(response[1])
-#         response_data = response[1]
-#         result = [TransactionHead(data) for data in response_data]
-#         return result
-
-#     def get_transaction_detail(self,transaction_head_id, field=None, sort=None, where_dict=None) -> List['TransactionDetail']:
-#         self.uri = smaregi_config.uri_pos + '/transactions/' + transaction_head_id + '/details'
-        
-#         header = self._get_header()
-#         body = self._get_query(sort=sort, where_dict=where_dict)
-        
-#         response = self._api_get(self.uri, header, body)
-#         if response[0] != 200:
-#             raise Exception(response[1])
-#         response_data = response[1]
-#         result = [TransactionDetail(data) for data in response_data]
-#         return result
-        
-
-#     def get_transaction(self,transaction_head_id, field=None, sort=None, where_dict=None) -> Dict[str, 'TransactionHead' or 'TransactionDetail']:
-#         """取引取得APIを実施します
-
-#         Returns:
-#             dict: head, detailsをキーに持つdict型。各々の要素はTransactionHead、TransactionDetail型
-#         """
-#         self.uri = smaregi_config.uri_pos + '/transactions/' + transaction_head_id
-        
-#         header = self._get_header()
-#         body = self._get_query_for_detail(sort=sort, where_dict=where_dict)
-        
-#         response = self._api_get(self.uri, header, body)
-#         if response[0] != 200:
-#             raise Exception(response[1])
-#         response_data = response[1]
-#         result = {}
-#         result["head"] = TransactionHead(response_data)
-#         if response_data.get("details") is not None:
-#             result["details"] = [TransactionDetail(data) for data in response_data.get("details")]
-#         return result
-        
-    
-#     def create_transaction_detail_csv(self, field=None, sort=None, where_dict=None):
-#         """取引明細CSV作成APIを実施します
-
-#         Args:
-#             field (dict, optional): [description]. Defaults to None.
-#             sort (dict, optional): [description]. Defaults to None.
-#             whereDict (dict, optional): [description]. Defaults to None.
-#         """
-#         self.uri = smaregi_config.uri_pos + '/transactions/details/out_file_async'
-        
-#         header = self._get_header()
-
-#         body = self._get_query_for_detail(sort=sort, where_dict=where_dict, state={
-#             'contractId': smaregi_config.contract_id,
-#             'field': field,
-#             'sort': sort,
-#             'where': where_dict,
-#         })
-        
-#         response = self._api_post(self.uri, header, body)
-#         if response[0] != 200:
-#             raise Exception(response[1])
-#         responseData = response[1]
-#         return responseData
 
 
 class Store(entities.StoreEntity, BaseServiceRecordApi):
@@ -185,6 +105,11 @@ class Transaction(entities.transaction.HeadEntity, BaseServiceRecordApi):
                 data=detail_list,
                 path_params=self.path_params,
             )
+        else:
+            self.details = TransactionDetailCollection(
+                path_params=self.path_params,
+            )
+
 
 class TransactionDetail(entities.transaction.DetailEntity, BaseServiceRecordApi):
     RECORD_NAME = 'details'
@@ -223,9 +148,8 @@ class TransactionDetailCollection(BaseServiceCollectionApi):
             for each_data in data
         }
 
-    @classmethod
     async def create_csv(
-        cls:Type[Collection],
+        self: 'BaseServiceCollectionApi',
         field: Optional[List] = None,
         sort: Optional[Dict[str, str]] = None,
         **kwargs
@@ -238,37 +162,33 @@ class TransactionDetailCollection(BaseServiceCollectionApi):
             whereDict (dict, optional): [description]. Defaults to None.
         """
 
-        uri = cls._get_uri({cls.UNIT_NAME: None})
-        header = cls._get_header()
-        body = cls._get_query(
+        path_param_dict = self.path_params
+        path_param_dict['out_file_async'] = None
+        uri = self._get_uri(path_param_dict)
+        header = self._get_header()
+        where_dict = kwargs
+        state = {
+            'contractId': config.smaregi_config.contract_id,
+            'field': field,
+            'sort': sort,
+            # 'where': where_dict,
+        }
+        where_dict['state'] = state
+        body = self._get_query(
             field=field,
             sort=sort,
-            limit=limit,
-            page=page,
-            where_dict=kwargs
+            where_dict=where_dict
         )
 
         try:
-            response = cls._api_get(uri, header, body)
+            response = self._api_post(uri, header, body)
         except ResponseException as e:
             raise e
 
-        response_data = response[cls.Response.KEY_DATA]
+        response_data = response[self.Response.KEY_DATA]
 
-        return cls(response_data, fetched_data=True)
-#         self.uri = smaregi_config.uri_pos + '/transactions/details/out_file_async'
-        
-#         header = self._get_header()
-
-#         body = self._get_query_for_detail(sort=sort, where_dict=where_dict, state={
-#             'contractId': smaregi_config.contract_id,
-#             'field': field,
-#             'sort': sort,
-#             'where': where_dict,
-#         })
-        
-#         response = self._api_post(self.uri, header, body)
-#         if response[0] != 200:
-#             raise Exception(response[1])
-#         responseData = response[1]
-#         return responseData
+        return entities.CallbackEntity({
+            'uuid': response_data.get('requestCode'),
+            'callback_url': response_data.get('callbackUrl'),
+            'state': response_data.get('state')
+        })
