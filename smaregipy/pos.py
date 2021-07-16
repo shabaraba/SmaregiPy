@@ -1,10 +1,12 @@
 import json
 from typing import (
+    Any,
     TypeVar,
     Type,
     Dict,
     List,
     Optional,
+    Union,
     cast
 )
 from . import entities
@@ -94,55 +96,130 @@ from .base_api import BaseServiceRecordApi, BaseServiceCollectionApi
 
 
 class Store(entities.StoreEntity, BaseServiceRecordApi):
-    PATH_PARAMS = ['stores']
+    RECORD_NAME = 'stores'
+
+    def __init__(
+        self,
+        data: Dict[str, Any] = {},
+        fetched_data: bool = False,
+        path_params: Dict[str, Union[str, None]] = {},
+        **kwargs
+    ) -> None:
+        BaseServiceRecordApi.__init__(self, fetched_data, path_params)
+        if fetched_data is True:
+            entities.StoreEntity.__init__(self, data)
+        
 
 class StoreCollection(BaseServiceCollectionApi):
-    PATH_PARAMS = ['stores']
+    RECORD_NAME = 'stores'
 
     records: Dict[str, Store]
 
-    def __init__(self, data: List):
+    def __init__(
+        self,
+        data: List = [],
+        path_params: Dict[str, Union[str, None]] = {},
+        **kwargs
+    ) -> None:
+        BaseServiceCollectionApi.__init__(self, data, path_params)
         self.records = { 
-            each_data['storeId']: Store(each_data) 
-            for each_data in data 
+            each_data['storeId']: Store(
+                data=each_data,
+                fetched_data=True,
+                path_params=self.path_params,
+            ) 
+            for each_data in data
         }
 
 class Product(entities.ProductEntity, BaseServiceRecordApi):
-    PATH_PARAMS = ['products']
+    RECORD_NAME = 'products'
 
+    def __init__(
+        self,
+        data: Dict[str, Any] = {},
+        fetched_data: bool = False,
+        path_params: Dict[str, Union[str, None]] = {},
+        **kwargs
+    ) -> None:
+        BaseServiceRecordApi.__init__(self, fetched_data, path_params)
+        if fetched_data is True:
+            entities.ProductEntity.__init__(self, data)
+        
 class ProductCollection(BaseServiceCollectionApi):
-    PATH_PARAMS = ['products']
+    RECORD_NAME = 'products'
 
     records: Dict[str, Product]
 
-    def __init__(self, data: List):
+    def __init__(
+        self,
+        data: List = [],
+        path_params: Dict[str, Union[str, None]] = {},
+        **kwargs
+    ) -> None:
+        BaseServiceCollectionApi.__init__(self, data, path_params)
         self.records = { 
-            each_data['productId']: Product(each_data)
+            each_data['productId']: Product(
+                data=each_data,
+                fetched_data=True,
+                path_params=self.path_params,
+            )
             for each_data in data
         }
 
 class Transaction(entities.transaction.HeadEntity, BaseServiceRecordApi):
-    PATH_PARAMS = ['transactions']
+    RECORD_NAME = 'transactions'
 
-    def __init__(self, data: Dict[str, str]):
-        super().__init__(data)
+    def __init__(
+        self,
+        data: Dict[str, Any] = {},
+        fetched_data: bool = False,
+        path_params: Dict[str, Union[str, None]] = {},
+        **kwargs
+    ) -> None:
+        BaseServiceRecordApi.__init__(self, fetched_data, path_params)
+        if fetched_data is True:
+            entities.transaction.HeadEntity.__init__(self, data)
         if data.get('details') is not None:
             detail_list = cast(List, data.get('details'))
-            self.details = TransactionDetailCollection(detail_list)
+            self.details = TransactionDetailCollection(
+                data=detail_list,
+                path_params=self.path_params,
+            )
 
 class TransactionDetail(entities.transaction.DetailEntity, BaseServiceRecordApi):
-    PATH_PARAMS = ['transactions', 'details']
+    RECORD_NAME = 'details'
+
+    def __init__(
+        self,
+        data: Dict[str, Any] = {},
+        fetched_data: bool = False,
+        path_params: Dict[str, Union[str, None]] = {},
+        **kwargs
+    ) -> None:
+        if fetched_data is True:
+            entities.transaction.DetailEntity.__init__(self, data)
+        BaseServiceRecordApi.__init__(self, fetched_data, path_params)
 
 Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
 
 class TransactionDetailCollection(BaseServiceCollectionApi):
-    PATH_PARAMS = ['transactions', 'details']
+    RECORD_NAME = 'details'
 
-    records: Dict[str, entities.transaction.DetailEntity]
+    records: Dict[str, TransactionDetail]
 
-    def __init__(self, data: List):
+    def __init__(
+        self,
+        data: List = [],
+        path_params: Dict[str, Union[str, None]] = {},
+        **kwargs
+    ) -> None:
+        BaseServiceCollectionApi.__init__(self, data, path_params)
         self.records = { 
-            each_data['transactionDetailId']: TransactionDetail(each_data)
+            each_data['transactionDetailId']: TransactionDetail(
+                data=each_data,
+                fetched_data=True,
+                path_params=self.path_params,
+            )
             for each_data in data
         }
 
