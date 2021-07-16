@@ -60,20 +60,9 @@ BaseService = TypeVar('BaseService', bound='BaseServiceApi')
 
 class BaseServiceApi(BaseApi):
     PATH_PARAMS: List[str]
-    PATH_PARAM_VALUES: List[str]
 
-    def __new__(
-        cls: Type[BaseService],
-        *args,
-        fetched_data: bool = True,
-        **kwargs
-    ) -> Union['BaseServiceApi', Type[BaseService]]:
-        if fetched_data is True:
-            # APIでデータを取得した場合のみinitでインスタンス化する
-            return super().__new__(cls)
-        else:
-            # 取得していない場合はインスタンス化せずクラスを返す
-            return cls
+    path_params_id_list: List[int]
+
 
     def __init__(self, *args, **kwargs):
         pass
@@ -216,49 +205,62 @@ class BaseServiceApi(BaseApi):
 Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
 
 
-class BaseServiceCollectionApi(BaseServiceApi):
+class BaseServiceCollectionApi(BaseEntity, BaseServiceApi):
     records:Dict[str, Any]
+
+    def __new__(
+        cls: Type[BaseService],
+        *args,
+        fetched_data: bool = True,
+        **kwargs
+    ) -> 'BaseServiceCollectionApi':
+        if fetched_data is True:
+            # APIでデータを取得した場合のみentityのinitでインスタンス化する
+            self = super().__new__(cls)
+        else:
+            # 取得していない場合はserviceApiのinitでインスタンス化する
+            self = BaseServiceApi.__new__(cls)
+        self.path_params_id_list = []
+        return self
 
     def __repr__(self) -> str:
         return str(self.records)
 
-    @classmethod
     async def get_all(
-        cls: Type[Collection],
+        self: 'BaseServiceCollectionApi',
         field: Optional[List] = None,
         sort: Optional[Dict[str, str]] = None,
         **kwargs
-    ) -> Collection:
-        path_param_values = [None for v in cls.PATH_PARAMS]
-        uri = cls._get_uri(dict(zip(cls.PATH_PARAMS, path_param_values)))
-        header = cls._get_header()
-        body = cls._get_query(
+    ) -> 'BaseServiceCollectionApi':
+        path_param_values = [(str(id) if id is not None else None) for id in self.path_params_id_list]
+        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
+        header = self._get_header()
+        body = self._get_query(
             field=field,
             sort=sort,
             where_dict=kwargs
         )
 
         try:
-            response = cls._api_get(uri, header, body)
+            response = self._api_get(uri, header, body)
         except ResponseException as e:
             raise e
-        response_data = response[cls.Response.KEY_DATA]
+        response_data = response[self.Response.KEY_DATA]
 
-        return cls(response_data)
+        return self.__class__(response_data, fetched_data=True)
 
-    @classmethod
     async def get_list(
-        cls:Type[Collection],
+        self: 'BaseServiceCollectionApi',
         field: Optional[List] = None,
         sort: Optional[Dict[str, str]] = None,
         limit: Optional[int] = None,
         page: Optional[int] = None,
         **kwargs
-    ) -> Collection:
-        path_param_values = [None] * len(cls.PATH_PARAMS)
-        uri = cls._get_uri(dict(zip(cls.PATH_PARAMS, path_param_values)))
-        header = cls._get_header()
-        body = cls._get_query(
+    ) -> 'BaseServiceCollectionApi':
+        path_param_values = [None] * len(self.PATH_PARAMS)
+        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
+        header = self._get_header()
+        body = self._get_query(
             field=field,
             sort=sort,
             limit=limit,
@@ -267,13 +269,13 @@ class BaseServiceCollectionApi(BaseServiceApi):
         )
 
         try:
-            response = cls._api_get(uri, header, body)
+            response = self._api_get(uri, header, body)
         except ResponseException as e:
             raise e
 
-        response_data = response[cls.Response.KEY_DATA]
+        response_data = response[self.Response.KEY_DATA]
 
-        return cls(response_data, fetched_data=True)
+        return self.__class__(response_data, fetched_data=True)
 
     def id(self: 'BaseServiceCollectionApi', value: int) -> 'BaseServiceRecordApi':
         """
@@ -290,35 +292,46 @@ class BaseServiceCollectionApi(BaseServiceApi):
 Unit = TypeVar('Unit', bound='BaseServiceRecordApi')
 
 class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
+    def __new__(
+        cls: Type[BaseService],
+        *args,
+        fetched_data: bool = False,
+        **kwargs
+    ) -> 'BaseServiceRecordApi':
+        if fetched_data is True:
+            # APIでデータを取得した場合のみentityのinitでインスタンス化する
+            self = super().__new__(cls)
+        else:
+            # 取得していない場合はserviceApiのinitでインスタンス化する
+            self = BaseServiceApi.__new__(cls)
+        self.path_params_id_list = []
+        return self
 
-    @classmethod
-    def id(cls: Type[Unit], value: int) -> Unit:
-        self = cls(fetched_data=False)
+    def id(self: 'BaseServiceRecordApi', value: int) -> 'BaseServiceRecordApi':
         self.path_params_id_list.append(value)
         return self
 
-    @classmethod
     async def get(
-        cls: Type[Unit],
+        self: 'BaseServiceRecordApi',
         field: Optional[List] = None,
         **kwargs
-    ) -> Unit:
-        path_param_values = [str(id) for id in cls.path_params_id_list]
-        uri = cls._get_uri(dict(zip(cls.PATH_PARAMS, path_param_values)))
+    ) -> 'BaseServiceRecordApi':
+        path_param_values = [str(id) for id in self.path_params_id_list]
+        uri = self._get_uri(dict(zip(self.PATH_PARAMS, path_param_values)))
         # uri = cls._get_uri({cls.UNIT_NAME: str(cls._id)})
-        header = cls._get_header()
-        body = cls._get_query(
+        header = self._get_header()
+        body = self._get_query(
             field=field,
             where_dict=kwargs
         )
 
         try:
-            response = cls._api_get(uri, header, body)
+            response = self._api_get(uri, header, body)
         except ResponseException as e:
             raise e
 
-        response_data = response[cls.Response.KEY_DATA]
-        return cls(response_data)
+        response_data = response[self.Response.KEY_DATA]
+        return self.__class__(response_data, fetched_data=True)
 
     @classmethod
     async def create(cls: Type[Unit], **kwargs) -> Unit:

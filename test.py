@@ -10,7 +10,8 @@ async def product_demo():
     pass
     try:
         # get product by id
-        product = await pos.Product.id(1).get()
+        import pdb;pdb.set_trace()
+        product = await pos.Product().id(1).get()
         print('---product')
         pprint(product)
     except Exception as e:
@@ -19,7 +20,7 @@ async def product_demo():
 async def store_demo():
     try:
         # get all stores, pick up a store, and update the store's store name
-        all_stores = await pos.StoreCollection.get_all()
+        all_stores = await pos.StoreCollection().get_all()
         updated_store = await all_stores.id(1).update(store_name="smaregipy")
         print('---store')
         pprint(updated_store)
@@ -30,11 +31,21 @@ async def store_demo():
 async def transaction_demo():
     try:
         # get transaction details having transaction head id 165
-        transaction = await pos.Transaction.id(165).get(with_details='all')
+        transaction = await pos.Transaction().id(165).get(with_details='all')
         print('---transaction detail')
         pprint(transaction.details)
         # and get details having detail id 1
         pprint(transaction.details.id(1))
+
+        # get transaction detail by tansaction head
+        transaction_list = await pos.TransactionCollection().get_list(limit=5, page=2)
+
+        pdb.set_trace()
+        print('---transaction list')
+        pprint(transaction_list)
+        print('---transaction detail id 7')
+        pprint(await transaction_list.id(7).details.get_all())
+
     except Exception as e:
         pprint(e)
 

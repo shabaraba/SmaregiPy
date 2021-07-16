@@ -101,11 +101,12 @@ class StoreCollection(BaseServiceCollectionApi):
 
     records: Dict[str, Store]
 
-    def __init__(self, data: List):
-        self.records = { 
-            each_data['storeId']: Store(each_data) 
-            for each_data in data 
-        }
+    def __init__(self, data: Optional[List] = None):
+        if isinstance(data, List):
+            self.records = { 
+                each_data['storeId']: Store(each_data) 
+                for each_data in data 
+            }
 
 class Product(entities.ProductEntity, BaseServiceRecordApi):
     PATH_PARAMS = ['products']
@@ -124,11 +125,30 @@ class ProductCollection(BaseServiceCollectionApi):
 class Transaction(entities.transaction.HeadEntity, BaseServiceRecordApi):
     PATH_PARAMS = ['transactions']
 
-    def __init__(self, data: Dict[str, str]):
+    def __init__(self, data: Optional[Dict[str, str]] = None):
         super().__init__(data)
-        if data.get('details') is not None:
-            detail_list = cast(List, data.get('details'))
-            self.details = TransactionDetailCollection(detail_list)
+        if isinstance(data, Dict):
+            if data.get('details') is not None:
+                detail_list = cast(List, data.get('details'))
+                self.details = TransactionDetailCollection(detail_list)
+            else:
+                self.details = TransactionDetailCollection([])
+            if self.path_params_id_list is not []:
+                self.details.path_params_id_list.append(self.path_params_id_list)
+
+class TransactionCollection(BaseServiceCollectionApi):
+    PATH_PARAMS = ['transactions']
+
+    records: Dict[str, Transaction]
+
+    def __init__(self, data: Optional[List] = None):
+        if isinstance(data, Dict):
+            self.records = { 
+                each_data['transactionHeadId']: Transaction(each_data)
+                for each_data in data
+            }
+            for record in self.records.values():
+                record.path_params_id_list.append(record.transaction_head_id)
 
 class TransactionDetail(entities.transaction.DetailEntity, BaseServiceRecordApi):
     PATH_PARAMS = ['transactions', 'details']
@@ -140,11 +160,12 @@ class TransactionDetailCollection(BaseServiceCollectionApi):
 
     records: Dict[str, entities.transaction.DetailEntity]
 
-    def __init__(self, data: List):
-        self.records = { 
-            each_data['transactionDetailId']: TransactionDetail(each_data)
-            for each_data in data
-        }
+    def __init__(self, data: Optional[List] = None):
+        if isinstance(data, List):
+            self.records = { 
+                each_data['transactionDetailId']: TransactionDetail(each_data)
+                for each_data in data
+            }
 
     @classmethod
     async def create_csv(
