@@ -82,7 +82,9 @@ class Account(AccountEntity, BaseIdentificationApi):
             'code': code,
             'redirect_uri': config.smaregi_config.redirect_uri,
         }
-        uri = "{endpoint}/authorize/token".format(config.smaregi_config.uri_access)
+        uri = "{endpoint}/authorize/token".format(
+            endpoint=config.smaregi_config.uri_acces
+        )
         result = requests.post(uri, headers=headers, data=urlencode(body))
         result = result.json()
 
