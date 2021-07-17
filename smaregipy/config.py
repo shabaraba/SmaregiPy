@@ -1,11 +1,9 @@
 import datetime
-from typing import Optional, Union, cast
+from typing import Optional, cast
 from logging import Logger
 import dataclasses
 
 from smaregipy.entities.account import Account
-
-smaregi_config: Union['Config', None] = None
 
 
 @dataclasses.dataclass
@@ -82,4 +80,14 @@ def init_config(
 def update_access_token(access_token: Account.AccessToken) -> None:
     global smaregi_config
     smaregi_config.access_token = access_token
+
+smaregi_config: 'Config' = Config(
+    env_division=Config.ENV_DIVISION_DEVELOPMENT,
+    client_id='client_id',
+    client_secret='client_secret',
+    contract_id='contract_id',
+    redirect_uri='redirect_uri',
+    access_token=None,
+    logger=None
+)
 

@@ -15,11 +15,10 @@ AccountType = TypeVar('AccountType', bound='Account')
 
 class Account(AccountEntity, BaseIdentificationApi):
     @classmethod
-    def authentication_uri(cls: Type[AccountType], contract_id: str) -> str:
+    def authentication_uri(cls: Type[AccountType]) -> str:
         uri = "{endpoint}/authorize".format(config.smaregi_config.uri_access)
         query = {
             'response_type': 'code',
-            'client_id': contract_id,
             'scope': 'openid',
             'state': 'todo_create_random_str',
             'redirect_uri': config.smaregi_config.redirect_uri,
