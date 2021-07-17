@@ -5,6 +5,8 @@ import dataclasses
 
 from smaregipy.entities.account import Account
 
+smaregi_config: 'Config'
+
 
 @dataclasses.dataclass
 class Config():
@@ -12,7 +14,7 @@ class Config():
     ENV_DIVISION_PRODUCTION = 'PROD'
 
     env_division: str
-    usr_info: str
+    uri_info: str
     uri_access: str
     uri_api: str
     uri_pos: str
@@ -41,12 +43,12 @@ class Config():
 
     def set_env(self: 'Config', env_division: str) -> 'Config':
         self.env_division = env_division
-        if env_division is self.ENV_DIVISION_DEVELOPMENT:
-            self.uri_access = 'https://id.smaregi.dev'
-            self.uri_api = 'https://api.smaregi.dev'
-        else:
+        if env_division is self.ENV_DIVISION_PRODUCTION:
             self.uri_access = 'https://id.smaregi.jp'
             self.uri_api = 'https://api.smaregi.jp'
+        else:
+            self.uri_access = 'https://id.smaregi.dev'
+            self.uri_api = 'https://api.smaregi.dev'
         self.uri_info = self.uri_access + 'userinfo'
         self.uri_pos = self.uri_api + '/' + self.contract_id + '/pos'
         return self
@@ -103,7 +105,7 @@ def init_config(
     client_secret: str,
     access_token: Optional[Account.AccessToken] = None,
     logger: Optional[Logger] = None
-    ) -> None:
+) -> None:
     global smaregi_config
     smaregi_config = Config(
         env_division=env_division,

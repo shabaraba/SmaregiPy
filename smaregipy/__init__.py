@@ -1,7 +1,7 @@
 from logging import Logger
 from typing import Optional, TypeVar, Type
 from . import account, pos, entities
-from .config import Config, init_config
+from .config import Config, init_config, smaregi_config
 from . import entities
 
 __all__ = [
