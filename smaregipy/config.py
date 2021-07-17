@@ -1,11 +1,11 @@
 import datetime
-from typing import Optional, cast
+from typing import Optional, Union, cast
 from logging import Logger
 import dataclasses
 
 from smaregipy.entities.account import Account
 
-smaregi_config: 'Config'
+smaregi_config: Union['Config', None] = None
 
 
 @dataclasses.dataclass
