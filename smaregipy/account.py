@@ -19,6 +19,7 @@ class Account(AccountEntity, BaseIdentificationApi):
         uri = "{endpoint}/authorize".format(endpoint=config.smaregi_auth_config.uri_access)
         query = {
             'response_type': 'code',
+            'client_id': config.smaregi_auth_config.smaregi_client_id,
             'scope': 'openid',
             'state': 'todo_create_random_str',
             'redirect_uri': config.smaregi_auth_config.redirect_uri,
