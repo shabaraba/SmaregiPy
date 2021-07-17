@@ -1,12 +1,13 @@
 from logging import Logger
 from typing import Optional, TypeVar, Type
 from . import account, pos, entities
-from .config import Config, init_config, smaregi_config
+from .config import Config, init_config, init_auth_config, smaregi_config
 from . import entities
 
 __all__ = [
     'SmaregiPy',
     'smaregi_config',
+    'smaregi_auth_config',
     'pos',
 ]
 
@@ -36,14 +37,27 @@ class SmaregiPy():
             (redirect_uri is None or isinstance(redirect_uri, str)) and
             (logger is None or isinstance(logger, Logger))
         ):
-            global smaregi_config
-            smaregi_config = init_config(
+            init_config(
                 env_division=env_division,
                 contract_id=contract_id,
                 redirect_uri=redirect_uri,
                 client_id=smaregi_client_id,
                 client_secret=smaregi_client_secret,
                 access_token=access_token,
+                logger=logger
+            )
+        if (
+            (env_division is not None and isinstance(env_division, str)) and
+            (smaregi_client_id is not None and isinstance(smaregi_client_id, str)) and
+            (smaregi_client_secret is not None and isinstance(smaregi_client_secret, str)) and
+            (redirect_uri is not None or isinstance(redirect_uri, str)) and
+            (logger is None or isinstance(logger, Logger))
+        ):
+            init_auth_config(
+                env_division=env_division,
+                redirect_uri=redirect_uri,
+                client_id=smaregi_client_id,
+                client_secret=smaregi_client_secret,
                 logger=logger
             )
 

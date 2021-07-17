@@ -77,6 +77,23 @@ def init_config(
     )
 
 
+def init_auth_config(
+    env_division: str,
+    client_id: str,
+    client_secret: str,
+    redirect_uri: str,
+    logger: Optional[Logger] = None
+) -> None:
+    global smaregi_auth_config
+    smaregi_auth_config = Config(
+        env_division=env_division,
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=redirect_uri,
+        logger=logger
+    )
+
+
 def update_access_token(access_token: Account.AccessToken) -> None:
     global smaregi_config
     smaregi_config.access_token = access_token
@@ -88,6 +105,14 @@ smaregi_config: 'Config' = Config(
     contract_id='contract_id',
     redirect_uri='redirect_uri',
     access_token=None,
+    logger=None
+)
+
+smaregi_auth_config: 'Config' = Config(
+    env_division=Config.ENV_DIVISION_DEVELOPMENT,
+    client_id='client_id',
+    client_secret='client_secret',
+    redirect_uri='redirect_uri',
     logger=None
 )
 
