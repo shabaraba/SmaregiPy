@@ -12,8 +12,8 @@ class Config():
     ENV_DIVISION_PRODUCTION = 'PROD'
 
     env_division: str
-    smargi_client_id: str
-    smargi_client_secret: str
+    smaregi_client_id: str
+    smaregi_client_secret: str
     uri_info: str
     uri_access: str
     uri_api: str
@@ -64,7 +64,7 @@ class Config():
         self.uri_info = "{endpoint}/userinfo".format(
             endpoint=self.uri_access
         )
-        self.uri_user_access_token = "{endpoint}/ahthorize/token".format(
+        self.uri_user_access_token = "{endpoint}/authorize/token".format(
             endpoint=self.uri_access
         )
         return self
