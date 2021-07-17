@@ -18,6 +18,7 @@ class Config():
     uri_access: str
     uri_api: str
     uri_app_access_token: Optional[str]
+    uri_user_access_token: Optional[str]
     uri_pos: Optional[str]
     contract_id: Optional[str]
     redirect_uri: Optional[str]
@@ -60,6 +61,9 @@ class Config():
             self.uri_app_access_token = "{endpoint}/app/{contract_id}/token".format(
                 endpoint=self.uri_access,
                 contract_id=self.contract_id
+            )
+            self.uri_user_access_token = "{endpoint}/ahthorize/token".format(
+                endpoint=self.uri_access
             )
         return self
 

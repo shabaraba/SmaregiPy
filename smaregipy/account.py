@@ -80,11 +80,9 @@ class Account(AccountEntity, BaseIdentificationApi):
         body = {
             'grant_type': 'authorization_code',
             'code': code,
-            'redirect_uri': config.smaregi_config.redirect_uri,
+            'redirect_uri': config.smaregi_auth_config.redirect_uri,
         }
-        uri = "{endpoint}/authorize/token".format(
-            endpoint=config.smaregi_config.uri_acces
-        )
+        uri = cast(str, config.smaregi_auth_config.uri_user_access_token)
         result = requests.post(uri, headers=headers, data=urlencode(body))
         result = result.json()
 
