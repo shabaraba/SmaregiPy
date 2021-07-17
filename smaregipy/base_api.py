@@ -45,9 +45,9 @@ class BaseIdentificationApi(BaseApi):
     @staticmethod
     def _get_header():
         authorization_string = (
-            config.smaregi_config.smaregi_client_id +
+            config.smaregi_auth_config.smaregi_client_id +
             ":" +
-            config.smaregi_config.smaregi_client_secret
+            config.smaregi_auth_config.smaregi_client_secret
         ).encode()
         encoded_string = BaseIdentificationApi._get_base64_encode(authorization_string)
         base64encoded = "Basic " + str(encoded_string).split("'")[1]
