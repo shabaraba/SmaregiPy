@@ -52,7 +52,6 @@ class Config():
         else:
             self.uri_access = 'https://id.smaregi.dev'
             self.uri_api = 'https://api.smaregi.dev'
-        self.uri_info = self.uri_access + 'userinfo'
         if self.contract_id is not None:
             self.uri_pos = "{endpoint}/{contract_id}/pos".format(
                 endpoint=self.uri_api,
@@ -62,9 +61,12 @@ class Config():
                 endpoint=self.uri_access,
                 contract_id=self.contract_id
             )
-            self.uri_user_access_token = "{endpoint}/ahthorize/token".format(
-                endpoint=self.uri_access
-            )
+        self.uri_info = "{endpoint}/userinfo".format(
+            endpoint=self.uri_access
+        )
+        self.uri_user_access_token = "{endpoint}/ahthorize/token".format(
+            endpoint=self.uri_access
+        )
         return self
 
 
