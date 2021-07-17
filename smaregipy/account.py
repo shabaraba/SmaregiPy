@@ -37,7 +37,7 @@ class Account(AccountEntity, BaseIdentificationApi):
         info_header = {
             'Authorization': 'Bearer ' + access_token
         }
-        uri = "{endpoint}/userinfo".format(config.smaregi_config.uri_access)
+        uri = config.smaregi_auth_config.uri_info
 
         response = requests.post(uri, headers=info_header).json()
         return Account(

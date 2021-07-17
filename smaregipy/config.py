@@ -12,12 +12,13 @@ class Config():
     ENV_DIVISION_PRODUCTION = 'PROD'
 
     env_division: str
+    smargi_client_id: str
+    smargi_client_secret: str
     uri_info: str
     uri_access: str
     uri_api: str
-    uri_pos: str
-    smargi_client_id: str
-    smargi_client_secret: str
+    uri_app_access_token: Optional[str]
+    uri_pos: Optional[str]
     contract_id: Optional[str]
     redirect_uri: Optional[str]
     access_token: Optional[Account.AccessToken]
@@ -52,7 +53,14 @@ class Config():
             self.uri_api = 'https://api.smaregi.dev'
         self.uri_info = self.uri_access + 'userinfo'
         if self.contract_id is not None:
-            self.uri_pos = self.uri_api + '/' + self.contract_id + '/pos'
+            self.uri_pos = "{endpoint}/{contract_id}/pos".format(
+                endpoint=self.uri_api,
+                contract_id=self.contract_id
+            )
+            self.uri_app_access_token = "{endpoint}/app/{contract_id}/token".format(
+                endpoint=self.uri_access,
+                contract_id=self.contract_id
+            )
         return self
 
 
