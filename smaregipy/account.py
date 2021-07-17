@@ -16,12 +16,12 @@ AccountType = TypeVar('AccountType', bound='Account')
 class Account(AccountEntity, BaseIdentificationApi):
     @classmethod
     def authentication_uri(cls: Type[AccountType]) -> str:
-        uri = "{endpoint}/authorize".format(config.smaregi_auth_config.uri_access)
+        uri = "{endpoint}/authorize".format(endpoint=config.smaregi_auth_config.uri_access)
         query = {
             'response_type': 'code',
             'scope': 'openid',
             'state': 'todo_create_random_str',
-            'redirect_uri': config.smaregi_config.redirect_uri,
+            'redirect_uri': config.smaregi_auth_config.redirect_uri,
         }
         params = urlencode(query)
         return "{endpoint}?{params}".format(
