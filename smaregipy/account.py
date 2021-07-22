@@ -1,5 +1,12 @@
 from urllib.parse import urlencode
-from typing import TypeVar, Type, Tuple, List, Union, cast
+from typing import (
+    TypeVar,
+    Type,
+    List,
+    Optional,
+    cast
+)
+
 import datetime
 import pytz
 
@@ -31,7 +38,11 @@ class Account(AccountEntity, BaseIdentificationApi):
         )
 
     @classmethod
-    def authenticate(cls: Type[AccountType], code: str, state: str) -> 'Account':
+    def authenticate(
+        cls: Type[AccountType],
+        code: str,
+        state: Optional[str] = None
+    ) -> 'Account':
         user_access_token = cls.__get_user_access_token(code)
         access_token = user_access_token.access_token
         info_header = {
@@ -48,6 +59,20 @@ class Account(AccountEntity, BaseIdentificationApi):
 
     @classmethod
     def authorize(cls: Type[AccountType], contract_id: str, scope_list: List[str]) -> 'Account':
+        """
+            認可します。
+            もしsmaregi_configに有効期限内のaccess_tokenがある場合は何もしません。
+        """
+        if isinstance(config.smaregi_config.access_token, AccountEntity.AccessToken):
+            access_token = config.smaregi_config.access_token
+            if access_token.is_available():
+                account = Account(
+                    contract_id=contract_id,
+                    access_token=access_token.token,
+                    access_token_expiration_datetime=config.smaregi_config.access_token.expiration_datetime
+                )
+                return account
+
         url = "{endpoint}/app/{contract_id}/token".format(
             endpoint=config.smaregi_config.uri_access,
             contract_id=contract_id

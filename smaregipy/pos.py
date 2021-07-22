@@ -99,16 +99,20 @@ class Transaction(entities.transaction.HeadEntity, BaseServiceRecordApi):
         BaseServiceRecordApi.__init__(self, fetched_data, path_params)
         if fetched_data is True:
             entities.transaction.HeadEntity.__init__(self, data)
-        if data.get('details') is not None:
-            detail_list = cast(List, data.get('details'))
+        details = data.get('details')
+        if isinstance(details, list):
             self.details = TransactionDetailCollection(
-                data=detail_list,
+                data=details,
                 path_params=self.path_params,
             )
         else:
             self.details = TransactionDetailCollection(
                 path_params=self.path_params,
             )
+
+    @property
+    def head(self):
+        return self
 
 
 class TransactionDetail(entities.transaction.DetailEntity, BaseServiceRecordApi):

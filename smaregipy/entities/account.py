@@ -34,17 +34,17 @@ class Account():
 
 
     class AccessToken():
-        def __init__(self, _access_token: str, _expiration_datetime: datetime.datetime):
-            self._access_token: str = _access_token
+        def __init__(self, _token: str, _expiration_datetime: datetime.datetime):
+            self._token: str = _token
             self._expiration_datetime: datetime.datetime = _expiration_datetime
 
         @property
-        def access_token(self) -> str:
-            return self._access_token
+        def token(self) -> str:
+            return self._token
 
-        @access_token.setter
-        def access_token(self, value):
-            self._access_token = value
+        @token.setter
+        def token(self, value):
+            self._token = value
 
         @property
         def expiration_datetime(self) -> datetime.datetime:
@@ -56,8 +56,11 @@ class Account():
                 value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S %z')
             self._expiration_datetime = value
 
-        def is_access_token_available(self):
-            if self.access_token is None:
+        def is_available(self):
+            """
+                有効期限を過ぎていないかどうか確認します
+            """
+            if self.token is None:
                 return False
             if self.expiration_datetime is not None:
                 now = datetime.datetime.now(pytz.timezone('Asia/Tokyo'))

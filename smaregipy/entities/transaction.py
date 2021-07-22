@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 import datetime
 
 from .base_entity import BaseEntity
+class TransactionEntity
 
 @dataclasses.dataclass
 class HeadEntity(BaseEntity):
