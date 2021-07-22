@@ -20,6 +20,7 @@ from typing import (
 from .exceptions import ResponseException
 from . import config
 from .entities.base_entity import BaseEntity
+from .entities import Account
 
 
 class BaseApi():
@@ -87,11 +88,13 @@ class BaseServiceApi(BaseApi):
 
     @staticmethod
     def _get_header():
-        auth = "Bearer " + config.smaregi_config.access_token.access_token
-        return {
-            'Authorization': auth,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        }
+        if isinstance(config.smaregi_config.access_token, Account.AccessToken):
+            auth = "Bearer " + config.smaregi_config.access_token.token
+            return {
+                'Authorization': auth,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        raise Exception('')
 
     @staticmethod
     def _get_query(
