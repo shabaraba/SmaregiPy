@@ -166,8 +166,11 @@ class TransactionDetailCollection(BaseServiceCollectionApi):
             whereDict (dict, optional): [description]. Defaults to None.
         """
 
-        path_param_dict = self.path_params
-        path_param_dict['out_file_async'] = None
+        path_param_dict = {
+            'transactions': None,
+            'details': None,
+            'out_file_async': None,
+        }
         uri = self._get_uri(path_param_dict)
         header = self._get_header()
         where_dict = kwargs

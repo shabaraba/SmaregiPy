@@ -72,7 +72,7 @@ class BaseServiceApi(BaseApi):
     @classmethod
     def _get_uri(
         cls: Type[BaseService],
-        path_params: Optional[Dict[str, Optional[str]]] = None
+        path_params: Optional[Dict[str, Union[str, None]]] = None
     ) -> str:
         return "{endpoint}/{path_list}".format(
             endpoint=config.smaregi_config.uri_pos,
