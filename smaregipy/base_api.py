@@ -112,11 +112,9 @@ class BaseServiceApi(BaseApi):
         if (sort is not None):
             body.update({
                 'sort': (','.join(
-                    ' '.join([
-                        "{params}:{ascending}"
-                        .format(params=k, ascending=v)
-                        for k, v in sort.items()
-                    ])
+                    "{params}:{ascending}"
+                    .format(params=k, ascending=v)
+                    for k, v in sort.items()
                 ))
             })
         if (limit is not None and page is not None):
