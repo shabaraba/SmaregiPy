@@ -1,3 +1,4 @@
+import copy
 from typing import (
     Any,
     TypeVar,
@@ -178,7 +179,7 @@ class TransactionDetailCollection(BaseServiceCollectionApi):
             'contractId': config.smaregi_config.contract_id,
             'field': field,
             'sort': sort,
-            # 'where': where_dict,
+            'where': copy.deepcopy(where_dict),
         }
         where_dict['state'] = state
         body = self._get_query(
