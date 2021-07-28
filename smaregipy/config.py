@@ -6,6 +6,9 @@ import dataclasses
 from smaregipy.entities.account import Account
 
 
+smaregi_config: 'Config'
+smaregi_auth_config: 'Config'
+
 @dataclasses.dataclass
 class Config():
     ENV_DIVISION_DEVELOPMENT = 'DEV'
@@ -112,7 +115,7 @@ def update_access_token(access_token: Account.AccessToken) -> None:
     global smaregi_config
     smaregi_config.access_token = access_token
 
-smaregi_config: 'Config' = Config(
+smaregi_config = Config(
     env_division=Config.ENV_DIVISION_DEVELOPMENT,
     client_id='client_id',
     client_secret='client_secret',
@@ -122,7 +125,7 @@ smaregi_config: 'Config' = Config(
     logger=None
 )
 
-smaregi_auth_config: 'Config' = Config(
+smaregi_auth_config = Config(
     env_division=Config.ENV_DIVISION_DEVELOPMENT,
     client_id='client_id',
     client_secret='client_secret',

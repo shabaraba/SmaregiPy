@@ -19,8 +19,9 @@ from typing import (
 
 from .exceptions import ResponseException
 from . import config
-from .entities.base_entity import BaseEntity
 from .entities import Account
+from smaregipy.utils import DictUtil
+from smaregipy.bases.entity import BaseEntity
 
 
 class BaseApi():
@@ -212,115 +213,38 @@ class BaseServiceApi(BaseApi):
 
         return (response.status_code, result)
 
-
-Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
-
-
-class BaseServiceCollectionApi(BaseServiceApi):
-    RECORD_NAME: str
-
-    def __init__(
-        self,
-        data: List = [],
-        path_params: Dict[str, Union[str, None]] = {},
-    ) -> None:
-        self.records:Dict[str, Any]
-        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
-        self.path_params[self.RECORD_NAME] = None
-
-    def __new__(
-        cls: Type[BaseService],
-        *args,
-        fetched_data: bool = True,
-        **kwargs
-    ) -> 'BaseServiceCollectionApi':
-        if fetched_data is True:
-            # APIでデータを取得した場合のみentityのinitでインスタンス化する
-            self = super().__new__(cls)
-        else:
-            # 取得していない場合はserviceApiのinitでインスタンス化する
-            self = BaseServiceApi.__new__(cls)
-        self.path_params_id_list = []
-        return self
-
-    def __repr__(self) -> str:
-        return str(self.records)
-
-    async def get_all(
-        self: 'BaseServiceCollectionApi',
-        field: Optional[List] = None,
-        sort: Optional[Dict[str, str]] = None,
-        **kwargs
-    ) -> 'BaseServiceCollectionApi':
-        uri = self._get_uri(self.path_params)
-        header = self._get_header()
-        body = self._get_query(
-            field=field,
-            sort=sort,
-            where_dict=kwargs
-        )
-
-        try:
-            response = self._api_get(uri, header, body)
-        except ResponseException as e:
-            raise e
-        response_data = response[self.Response.KEY_DATA]
-
-        return self.__class__(response_data, path_params=self.path_params)
-
-    async def get_list(
-        self: 'BaseServiceCollectionApi',
-        field: Optional[List] = None,
-        sort: Optional[Dict[str, str]] = None,
-        limit: Optional[int] = None,
-        page: Optional[int] = None,
-        **kwargs
-    ) -> 'BaseServiceCollectionApi':
-        uri = self._get_uri(self.path_params)
-        header = self._get_header()
-        body = self._get_query(
-            field=field,
-            sort=sort,
-            limit=limit,
-            page=page,
-            where_dict=kwargs
-        )
-
-        try:
-            response = self._api_get(uri, header, body)
-        except ResponseException as e:
-            raise e
-
-        response_data = response[self.Response.KEY_DATA]
-
-        return self.__class__(response_data, path_params=self.path_params)
-
-    def id(self: 'BaseServiceCollectionApi', value: int) -> 'BaseServiceRecordApi':
+class RecordMeta(type):
+    def __new__(cls, cls_name, cls_superclasses, cls_attributes):
         """
-            collection内から該当するidのrecordを返します
+            クラスメンバのENTITYに合わせて多重継承の1つ目の親クラスを動的に設定します
         """
-        if self.records is not None:
-            target = self.records.get(str(value))
-            if isinstance(target, BaseServiceRecordApi):
-                target.path_params[self.RECORD_NAME] = str(value)
-                return target
-        raise Exception("存在しないIDです")
+        new_superclasses_tuple = cls_superclasses
+        entity = cls_attributes.get('ENTITY')
+        if entity is not None:
+            add_superclasses_tuple = (entity,)
+            base_service_api_class_tuple = (cls_superclasses[0],)
+            # new_superclasses_tuple = add_superclasses_tuple + cls_superclasses
+            new_superclasses_tuple = base_service_api_class_tuple + add_superclasses_tuple
+        return type.__new__(cls, cls_name, new_superclasses_tuple, cls_attributes)
 
 
 Unit = TypeVar('Unit', bound='BaseServiceRecordApi')
 
-class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
+class BaseServiceRecordApi(BaseServiceApi, BaseEntity, metaclass=RecordMeta):
     RECORD_NAME: str
-
+    ENTITY: BaseEntity
 
     def __init__(
         self,
+        data: Dict[str, Any] = {},
         fetched_data: bool = False,
         path_params: Dict[str, Union[str, None]] = {},
         **kwargs
     ) -> None:
         self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
         self.path_params[self.RECORD_NAME] = None
+        if fetched_data is True:
+            super(BaseServiceApi, self).__init__(**data)
 
     def id(self: 'BaseServiceRecordApi', value: int) -> 'BaseServiceRecordApi':
         self.path_params[self.RECORD_NAME] = str(value)
@@ -343,7 +267,7 @@ class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
         except ResponseException as e:
             raise e
 
-        response_data: Dict = response[self.Response.KEY_DATA]
+        response_data: Dict = DictUtil.convert_key_to_snake(response[self.Response.KEY_DATA])
         return self.__class__(
             data=response_data,
             fetched_data=True,
@@ -377,3 +301,96 @@ class BaseServiceRecordApi(BaseEntity, BaseServiceApi):
     async def delete(self: 'BaseServiceRecordApi', **kwargs) -> bool:
         return True
 
+
+Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
+
+
+class BaseServiceCollectionApi(BaseServiceApi):
+    RECORD_NAME: str
+    COLLECT_MODEL: 'BaseServiceRecordApi'
+
+    def __init__(
+        self,
+        data: List = [],
+        path_params: Dict[str, Union[str, None]] = {},
+    ) -> None:
+        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
+        self.path_params[self.RECORD_NAME] = None
+
+        model = getattr(self, 'COLLECT_MODEL')
+        records = [
+            model(
+                data=each_data,
+                fetched_data=True,
+                path_params=self.path_params,
+            )
+            for each_data in data
+        ]
+        self.records: List['BaseServiceRecordApi'] = records
+
+
+    def __repr__(self) -> str:
+        return str(self.records)
+
+    async def get_all(
+        self: 'BaseServiceCollectionApi',
+        field: Optional[List] = None,
+        sort: Optional[Dict[str, str]] = None,
+        **kwargs
+    ) -> 'BaseServiceCollectionApi':
+        uri = self._get_uri(self.path_params)
+        header = self._get_header()
+        body = self._get_query(
+            field=field,
+            sort=sort,
+            where_dict=kwargs
+        )
+
+        try:
+            response = self._api_get(uri, header, body)
+        except ResponseException as e:
+            raise e
+        response_data = response[self.Response.KEY_DATA]
+
+        snake_case_converted = [DictUtil.convert_key_to_snake(data) for data in response_data]
+
+        return self.__class__(snake_case_converted, path_params=self.path_params)
+
+    async def get_list(
+        self: 'BaseServiceCollectionApi',
+        field: Optional[List] = None,
+        sort: Optional[Dict[str, str]] = None,
+        limit: Optional[int] = None,
+        page: Optional[int] = None,
+        **kwargs
+    ) -> 'BaseServiceCollectionApi':
+        uri = self._get_uri(self.path_params)
+        header = self._get_header()
+        body = self._get_query(
+            field=field,
+            sort=sort,
+            limit=limit,
+            page=page,
+            where_dict=kwargs
+        )
+
+        try:
+            response = self._api_get(uri, header, body)
+        except ResponseException as e:
+            raise e
+
+        response_data = response[self.Response.KEY_DATA]
+
+        return self.__class__(response_data, path_params=self.path_params)
+
+    def id(self: 'BaseServiceCollectionApi', value: int) -> 'BaseServiceRecordApi':
+        """
+            collection内から該当するidのrecordを返します
+        """
+        if self.records is not None:
+            id_key_dict = {str(record.id_): record for record in self.records}
+            target = id_key_dict.get(str(value))
+            if isinstance(target, BaseServiceRecordApi):
+                target.path_params[self.RECORD_NAME] = str(value)
+                return target
+        raise Exception("存在しないIDです")

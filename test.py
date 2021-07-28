@@ -9,6 +9,9 @@ import pdb
 async def product_demo():
     pass
     try:
+        product_list = await pos.ProductCollection().get_all()
+        print('---product_list')
+        pprint(product_list)
         # get product by id
         product = await pos.Product().id(1).get()
         print('---product')
@@ -20,6 +23,7 @@ async def store_demo():
     try:
         # get all stores, pick up a store, and update the store's store name
         all_stores = await pos.StoreCollection().get_all()
+        breakpoint()
         updated_store = await all_stores.id(1).update(store_name="smaregipy")
         print('---store')
         pprint(updated_store)
@@ -68,7 +72,8 @@ if __name__ == '__main__':
     SmaregiPy.init_by_dict(
         {
             'env_division': Config.ENV_DIVISION_DEVELOPMENT,
-            'contract_id':contract_id,
+            'contract_id': contract_id,
+            'redirect_uri': 'http://dev.from-garage.com/accounts/login',
             'smaregi_client_id':smaregi_client_id,
             'smaregi_client_secret':smaregi_client_secret
         }
@@ -85,15 +90,15 @@ if __name__ == '__main__':
     )
 
     if account is not None:
-        print(account.access_token.access_token)
+        print(account.access_token.token)
 
     loop = asyncio.get_event_loop()
 
     tasks = asyncio.gather(
         store_demo(),
-        product_demo(),
-        transaction_demo(),
-        create_transaction_detail_csv_demo(),
+        # product_demo(),
+        # transaction_demo(),
+        # create_transaction_detail_csv_demo(),
     )
 
     results = loop.run_until_complete(tasks)
