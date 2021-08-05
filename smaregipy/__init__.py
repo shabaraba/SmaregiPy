@@ -1,13 +1,11 @@
 from logging import Logger
-from typing import Optional, TypeVar, Type
-from . import account, pos, entities
+from typing import TypeVar, Type
+from . import account, pos
 from .config import Config, init_config, init_auth_config, smaregi_config
-from . import entities
 
 __all__ = [
     'SmaregiPy',
     'smaregi_config',
-    'smaregi_auth_config',
     'pos',
 ]
 

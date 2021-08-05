@@ -33,6 +33,7 @@ async def store_demo():
         pprint(store_1)
 
         # get all stores, pick up a store, and update the store's store name
+        breakpoint()
         all_stores = await pos.StoreCollection().get_all()
         print('---all stores')
         pprint(all_stores)
@@ -57,7 +58,6 @@ async def store_demo():
         await store_3.save()
         pprint(store_3)
         print('---and store_3 delete')
-        breakpoint()
         await store_3.delete()
 
     except Exception as e:
@@ -65,6 +65,21 @@ async def store_demo():
 
 async def transaction_demo():
     try:
+        # get transaction detail by tansaction head
+        breakpoint()
+        transaction_list = await pos.TransactionCollection().get_list(
+            **{
+                'transaction_date_time-from': '2021-02-01T00:00:00+0900',
+                'transaction_date_time-to': '2021-02-28T00:00:00+0900'
+            },
+            limit=5,
+            page=2,
+        )
+        print('---transaction list')
+        pprint(transaction_list)
+        print('---transaction detail id 7')
+        pprint(await transaction_list.id(7).details.get_all())
+
         # get transaction details having transaction head id 165
         transaction = await pos.Transaction().id(165).get(with_details='all')
         print('---transaction detail')
@@ -72,14 +87,6 @@ async def transaction_demo():
         # and get details having detail id 1
         pprint(transaction.details.id(1))
 
-        # get transaction detail by tansaction head
-        transaction_list = await pos.TransactionCollection().get_list(limit=5, page=2)
-
-        pdb.set_trace()
-        print('---transaction list')
-        pprint(transaction_list)
-        print('---transaction detail id 7')
-        pprint(await transaction_list.id(7).details.get_all())
 
     except Exception as e:
         pprint(e)
@@ -127,9 +134,9 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     tasks = asyncio.gather(
-        store_demo(),
+        # store_demo(),
         # product_demo(),
-        # transaction_demo(),
+        transaction_demo(),
         # create_transaction_detail_csv_demo(),
     )
 

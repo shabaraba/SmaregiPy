@@ -13,7 +13,7 @@ from smaregipy.base_api import (
     BaseServiceCollectionApi,
 )
 
-from smaregipy.utils import NoDataType, NoData
+from smaregipy.utils import NoData
 
 class PointCondition(BaseServiceRecordApi):
     RECORD_NAME: ClassVar[str] = 'stores'
@@ -121,22 +121,12 @@ class Store(BaseServiceRecordApi):
     receipt_print_info: 'ReceiptPrintInfo' = ReceiptPrintInfo()
 
 
-    def __init__(self, **data: Any) -> None:
-        super().__init__(**data)
-        if self.path_params.get('stores') is None:
-            self.path_params['stores'] = None
-
-
 class StoreCollection(BaseServiceCollectionApi[Store]):
     RECORD_NAME = 'stores'
     COLLECT_MODEL = Store
 
     WITH: ClassVar[List[str]] = ['point_condition','receipt_print_info']
 
-    def __init__(self, **data: Any) -> None:
-        super().__init__(**data)
-        if self.path_params.get('stores') is None:
-            self.path_params['stores'] = None
 
 Store.update_forward_refs()
 
