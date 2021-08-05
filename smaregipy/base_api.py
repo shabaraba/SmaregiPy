@@ -1,3 +1,5 @@
+import pydantic
+import datetime
 import base64
 import requests
 import json
@@ -5,10 +7,13 @@ import copy
 from logging import Logger
 from urllib.parse import urlencode
 import asyncio
+from enum import Enum, auto
 
 from typing import (
     Any,
+    ClassVar,
     Dict,
+    Generic,
     Tuple,
     Optional,
     List,
@@ -20,8 +25,16 @@ from typing import (
 from .exceptions import ResponseException
 from . import config
 from .entities import Account
-from smaregipy.utils import DictUtil
+from smaregipy.utils import DictUtil, json_serial, NoData
 from smaregipy.bases.entity import BaseEntity
+
+
+BaseService = TypeVar('BaseService', bound='BaseServiceApi')
+T_Children = Dict[str, 'BaseServiceApi']
+T_InputEachData = Dict[str, Any]
+T_Record = TypeVar('T_Record', bound='BaseServiceRecordApi')
+T_Collection = TypeVar('T_Collection', bound='BaseServiceCollectionApi')
+T_InitChildren = Union[T_InputEachData, 'BaseService', None]
 
 
 class BaseApi():
@@ -59,16 +72,40 @@ class BaseIdentificationApi(BaseApi):
         }
 
 
-BaseService = TypeVar('BaseService', bound='BaseServiceApi')
+class BaseServiceApi(pydantic.BaseModel, BaseApi):
+    class Config:
+        underscore_attrs_are_private = True
+        arbitrary_types_allowed = True
 
-class BaseServiceApi(BaseApi):
-    PATH_PARAMS: List[str]
+    class DataStatus(Enum):
+        NON_SAVED = 0
+        FETCHED = auto()
+        SAVED = auto()
 
-    path_params_id_list: List[int]
 
+    RECORD_NAME: ClassVar[str]
+    ID_PROPERTY_NAME: ClassVar[str]
 
-    def __init__(self, *args, **kwargs):
-        pass
+    REQUEST_EXCLUDE_KEY: ClassVar[List[str]] = []
+    WITH: ClassVar[List[str]] = []
+
+    path_params: Dict[str, Union[str, None]] = {}
+    status_: DataStatus = DataStatus.NON_SAVED
+
+    def _set_path_params(self, path_params: Dict[str, Union[str, None]]) -> None:
+        self.path_params = copy.deepcopy(path_params)
+        self.path_params[self.RECORD_NAME] = None
+
+    def is_no_data(self) -> bool:
+        has_data_fields = []
+        for k, v in self.__fields__.items():
+            if (
+                not k in ('path_params','status_', 'id_') and
+                v is not NoData
+            ):
+                has_data_fields.append(k)
+
+        return True if has_data_fields == [] else False
 
     @classmethod
     def _get_uri(
@@ -87,13 +124,19 @@ class BaseServiceApi(BaseApi):
             ) if path_params is not None else "",
         )
 
+    @classmethod
+    def _get_with_query(
+        cls: Type[BaseService]
+    ) -> dict:
+        return {f"with_{key}": 'all' for key in cls.WITH}
+
     @staticmethod
     def _get_header():
         if isinstance(config.smaregi_config.access_token, Account.AccessToken):
             auth = "Bearer " + config.smaregi_config.access_token.token
             return {
                 'Authorization': auth,
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
             }
         raise Exception('')
 
@@ -167,7 +210,7 @@ class BaseServiceApi(BaseApi):
 
         return (response.status_code, result_list)
 
-    def _api_post(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
+    def _api_post(self, uri: str, header: Dict, body: str) -> Tuple[int, Any]:
         """POSTのAPIを実施します
 
         Args:
@@ -178,7 +221,7 @@ class BaseServiceApi(BaseApi):
         Returns:
             Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
         """
-        response = requests.post(uri, headers=header, data=json.dumps(body))
+        response = requests.post(uri, headers=header, data=body)
         result = response.json()
         if response.status_code not in [
             BaseApi.Response.STATUS_SUCCESS,
@@ -190,7 +233,7 @@ class BaseServiceApi(BaseApi):
 
         return (response.status_code, result)
 
-    def _api_patch(self, uri: str, header: Dict, body: Dict) -> Tuple[int, Any]:
+    def _api_patch(self, uri: str, header: Dict, body: str) -> Tuple[int, Any]:
         """PATCHのAPIを実施します
 
         Args:
@@ -201,7 +244,7 @@ class BaseServiceApi(BaseApi):
         Returns:
             Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
         """
-        response = requests.patch(uri, headers=header, data=json.dumps(body))
+        response = requests.patch(uri, headers=header, data=body)
         result = response.json()
         if response.status_code not in [
             BaseApi.Response.STATUS_SUCCESS,
@@ -213,53 +256,141 @@ class BaseServiceApi(BaseApi):
 
         return (response.status_code, result)
 
-class RecordMeta(type):
-    def __new__(cls, cls_name, cls_superclasses, cls_attributes):
+    def _api_delete(self, uri: str, header: Dict) -> Tuple[int, Any]:
+        """DELETEのAPIを実施します
+
+        Args:
+            uri (str): [description]
+            header (dict): [description]
+
+        Returns:
+            Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
         """
-            クラスメンバのENTITYに合わせて多重継承の1つ目の親クラスを動的に設定します
+        response = requests.delete(uri, headers=header)
+        if response.status_code not in [
+            BaseApi.Response.STATUS_SUCCESS,
+            BaseApi.Response.STATUS_ACCEPTED,
+        ]:
+            raise ResponseException(
+                response.json()
+            )
+
+        return (response.status_code, True)
+
+
+class BaseServiceRecordApi(BaseServiceApi):
+    # 自身のクエリストリングを指定
+    RECORD_NAME: ClassVar[str] = ''
+    # 自身のidを指定(store_id) など
+    ID_PROPERTY_NAME: ClassVar[str] = 'id_name'
+    # postなどで指定できないフィールドを指定
+    REQUEST_EXCLUDE_KEY: ClassVar[List[str]] = []
+
+    _id: Optional[int] = None
+
+    def __init__(self, **data: Dict[str, Any]):
+        super().__init__(**data)
+        id_value = getattr(self, self.ID_PROPERTY_NAME, None)
+        self._id = id_value
+        # setattr(self, "id_", id_value)
+        if self.path_params.get(self.RECORD_NAME) is None:
+            self.path_params[self.RECORD_NAME] = None
+
+    def to_api_request_body(self) -> str:
         """
-        new_superclasses_tuple = cls_superclasses
-        entity = cls_attributes.get('ENTITY')
-        if entity is not None:
-            add_superclasses_tuple = (entity,)
-            base_service_api_class_tuple = (cls_superclasses[0],)
-            # new_superclasses_tuple = add_superclasses_tuple + cls_superclasses
-            new_superclasses_tuple = base_service_api_class_tuple + add_superclasses_tuple
-        return type.__new__(cls, cls_name, new_superclasses_tuple, cls_attributes)
+            API更新登録用のリクエストボディのため、
+            当モデルを辞書型の文字列に変換します
+        """
+        params = self._convert_members_to_request_body_dict()
+        params = json.dumps(params, default=json_serial)
+        return params
+
+    def _convert_members_to_request_body_dict(self) -> Dict[str, str]:
+        """
+            API更新登録用のリクエストボディのため、
+            当モデルを辞書型に変換します
+            その際、予約後（children、id_など）は要素に含めません
+            ネスト対応済み
+        """
+
+        # breakpoint()
+        params = self.dict()
+        params = self._remove_nodata_keys(params)
+        params = self._remove_model_keys(params)
+        params = self._remove_exclude_keys(params)
+        params = DictUtil.convert_key_to_camel(params)
+        params = DictUtil.convert_value_to_str(params)
+        return params
+
+    def _remove_nodata_keys(self, d: Dict) -> Dict:
+        result = {}
+        for k, v in d.items():
+            if v is not NoData:
+                if isinstance(v, dict):
+                    v = self._remove_nodata_keys(v)
+                result[k] = v
+
+        return result
+
+    def _remove_exclude_keys(self, d: Dict) -> Dict:
+        result = {}
+        for k, v in d.items():
+            if k not in self.REQUEST_EXCLUDE_KEY:
+                if isinstance(v, dict):
+                    sub = getattr(self, k)
+                    v = sub._remove_exclude_keys(v)
+                result[k] = v
+
+        return result
+
+    def _remove_model_keys(self, d: Dict) -> Dict:
+        model_keys = [
+            'path_params',
+            'children',
+            'id_',
+            '_id',
+            'with_',
+            'status_',
+        ]
+
+        result = {}
+        for k, v in d.items():
+            if k not in model_keys:
+                if isinstance(v, dict):
+                    v = self._remove_model_keys(v)
+                result[k] = v
+
+        return result
 
 
-Unit = TypeVar('Unit', bound='BaseServiceRecordApi')
+    def id(self: T_Record, value: int) -> T_Record:
+        """
+            対象のレコードを返します
+        """
+        if isinstance(self.path_params, Dict):
+            self.path_params[self.RECORD_NAME] = str(value)
+        if self.path_params is None:
+            self.path_params = {
+                self.RECORD_NAME: str(value)
+        }
+        for child in self.__dict__.values():
+            if isinstance(child, BaseServiceApi):
+                child.id(value)
 
-class BaseServiceRecordApi(BaseServiceApi, BaseEntity, metaclass=RecordMeta):
-    RECORD_NAME: str
-    ENTITY: BaseEntity
-
-    def __init__(
-        self,
-        data: Dict[str, Any] = {},
-        fetched_data: bool = False,
-        path_params: Dict[str, Union[str, None]] = {},
-        **kwargs
-    ) -> None:
-        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
-        self.path_params[self.RECORD_NAME] = None
-        if fetched_data is True:
-            super(BaseServiceApi, self).__init__(**data)
-
-    def id(self: 'BaseServiceRecordApi', value: int) -> 'BaseServiceRecordApi':
-        self.path_params[self.RECORD_NAME] = str(value)
         return self
 
     async def get(
-        self: 'BaseServiceRecordApi',
+        self: T_Record,
         field: Optional[List] = None,
         **kwargs
-    ) -> 'BaseServiceRecordApi':
+    ) -> T_Record:
         uri = self._get_uri(self.path_params)
         header = self._get_header()
+        with_dict = self._get_with_query()
+        where_dict = dict(with_dict, **kwargs)
         body = self._get_query(
             field=field,
-            where_dict=kwargs
+            where_dict=where_dict
         )
 
         try:
@@ -269,26 +400,49 @@ class BaseServiceRecordApi(BaseServiceApi, BaseEntity, metaclass=RecordMeta):
 
         response_data: Dict = DictUtil.convert_key_to_snake(response[self.Response.KEY_DATA])
         return self.__class__(
-            data=response_data,
-            fetched_data=True,
-            path_params=self.path_params
+            path_params=self.path_params,
+            status_=self.DataStatus.FETCHED,
+            **response_data
         )
 
     @classmethod
-    async def create(cls: Type[Unit], **kwargs) -> Unit:
-        result = cls(kwargs)
+    async def create(cls: Type[T_Record], **kwargs) -> T_Record:
+        # TODO
+        result = cls(**kwargs)
         return result
 
-    async def save(self: 'BaseServiceRecordApi', **kwargs) -> 'BaseServiceRecordApi':
-        uri = self._get_uri([str(self._id)])
+    async def save(self: T_Record) -> T_Record:
+        uri = self._get_uri(self.path_params)
         header = self._get_header()
-        for k, v in kwargs.items():
-            if k in self.__dict__.keys():
-                setattr(self, k, v)
-        self.__api_post(uri, header, self.to_api_request_body())
+
+        if self.status_ == self.DataStatus.NON_SAVED:
+            response = self._api_post(uri, header, self.to_api_request_body())
+        else:
+            response = self._api_patch(uri, header, self.to_api_request_body())
+
+        response_data: Dict = DictUtil.convert_key_to_snake(response[self.Response.KEY_DATA])
+        response_model = self.__class__(
+            path_params=self.path_params,
+            status_=self.DataStatus.SAVED,
+            **response_data
+        )
+        self.copy_all_fields(response_model)
+        self.id(getattr(self, self.ID_PROPERTY_NAME))
+        self.status_=self.DataStatus.SAVED
         return self
 
-    async def update(self: 'BaseServiceRecordApi', **kwargs) -> 'BaseServiceRecordApi':
+    def copy_all_fields(self: 'BaseServiceRecordApi', target: 'BaseServiceRecordApi') -> 'BaseServiceRecordApi':
+        """
+            APIで作成/更新した際にレスポンスで送られてくるデータを、
+            現モデルのフィールドにコピーします
+            （あらたにインスタンスを作成するとidが変わってしまうため行わない）
+        """
+        if self.__class__ is target.__class__:
+            for k in target.__fields__:
+                setattr(self, k, getattr(target, k))
+        return self
+
+    async def update(self: T_Record, **kwargs) -> T_Record:
         uri = self._get_uri(self.path_params)
 
         header = self._get_header()
@@ -298,80 +452,51 @@ class BaseServiceRecordApi(BaseServiceApi, BaseEntity, metaclass=RecordMeta):
         self._api_patch(uri, header, self.to_api_request_body())
         return self
 
-    async def delete(self: 'BaseServiceRecordApi', **kwargs) -> bool:
+    async def delete(self: 'BaseServiceRecordApi') -> bool:
+        uri = self._get_uri(self.path_params)
+        header = self._get_header()
+        self._api_delete(uri, header)
         return True
 
 
-Collection = TypeVar('Collection', bound='BaseServiceCollectionApi')
+class BaseServiceCollectionApi(BaseServiceApi, Generic[T_Record]):
+    RECORD_NAME: ClassVar[str]
+    COLLECT_MODEL: ClassVar[T_Record]
 
+    records: List[T_Record] = []
 
-class BaseServiceCollectionApi(BaseServiceApi):
-    RECORD_NAME: str
-    COLLECT_MODEL: 'BaseServiceRecordApi'
+    def __iter__(self):
+        return iter(self.records)
 
-    def __init__(
-        self,
-        data: List = [],
-        path_params: Dict[str, Union[str, None]] = {},
-    ) -> None:
-        self.path_params: Dict[str, Union[str, None]] = copy.deepcopy(path_params)
-        self.path_params[self.RECORD_NAME] = None
-
-        model = getattr(self, 'COLLECT_MODEL')
-        records = [
-            model(
-                data=each_data,
-                fetched_data=True,
-                path_params=self.path_params,
-            )
-            for each_data in data
-        ]
-        self.records: List['BaseServiceRecordApi'] = records
-
-
-    def __repr__(self) -> str:
-        return str(self.records)
+    def __getitem__(self, item):
+        return self.records[item]
 
     async def get_all(
-        self: 'BaseServiceCollectionApi',
+        self: T_Collection,
         field: Optional[List] = None,
         sort: Optional[Dict[str, str]] = None,
         **kwargs
-    ) -> 'BaseServiceCollectionApi':
-        uri = self._get_uri(self.path_params)
-        header = self._get_header()
-        body = self._get_query(
-            field=field,
-            sort=sort,
-            where_dict=kwargs
-        )
-
-        try:
-            response = self._api_get(uri, header, body)
-        except ResponseException as e:
-            raise e
-        response_data = response[self.Response.KEY_DATA]
-
-        snake_case_converted = [DictUtil.convert_key_to_snake(data) for data in response_data]
-
-        return self.__class__(snake_case_converted, path_params=self.path_params)
+    ) -> T_Collection:
+        return await self.get_list(field, sort, **kwargs)
 
     async def get_list(
-        self: 'BaseServiceCollectionApi',
+        self: T_Collection,
         field: Optional[List] = None,
         sort: Optional[Dict[str, str]] = None,
         limit: Optional[int] = None,
         page: Optional[int] = None,
         **kwargs
-    ) -> 'BaseServiceCollectionApi':
+    ) -> T_Collection:
         uri = self._get_uri(self.path_params)
         header = self._get_header()
+        with_dict = self._get_with_query()
+        where_dict = dict(with_dict, **kwargs)
         body = self._get_query(
             field=field,
             sort=sort,
             limit=limit,
             page=page,
-            where_dict=kwargs
+            where_dict=where_dict
         )
 
         try:
@@ -380,17 +505,40 @@ class BaseServiceCollectionApi(BaseServiceApi):
             raise e
 
         response_data = response[self.Response.KEY_DATA]
+        snake_case_converted = [DictUtil.convert_key_to_snake(data) for data in response_data]
+        response_model_list = self._create_collect_model_instances(snake_case_converted)
 
-        return self.__class__(response_data, path_params=self.path_params)
+        model = getattr(self, '__class__')
+        return model(
+            records=response_model_list,
+            path_params=self.path_params,
+            status_=self.DataStatus.FETCHED,
+        )
 
-    def id(self: 'BaseServiceCollectionApi', value: int) -> 'BaseServiceRecordApi':
+    def _create_collect_model_instances(self, data: List[T_InputEachData]) -> List[T_Record]:
+        model = getattr(self, 'COLLECT_MODEL')
+        records = [
+            model(
+                path_params=self.path_params,
+                status_=self.DataStatus.FETCHED,
+                **each_data
+            ) for each_data in data
+        ]
+
+        return records
+
+    def id(self: 'BaseServiceCollectionApi', value: int) -> T_Record:
         """
             collection内から該当するidのrecordを返します
         """
         if self.records is not None:
-            id_key_dict = {str(record.id_): record for record in self.records}
+            id_key_dict: Dict[str, T_Record] = {str(record._id): record for record in self.records}
+
             target = id_key_dict.get(str(value))
             if isinstance(target, BaseServiceRecordApi):
-                target.path_params[self.RECORD_NAME] = str(value)
+                target.id(value)
                 return target
         raise Exception("存在しないIDです")
+
+BaseServiceRecordApi.update_forward_refs()
+BaseServiceCollectionApi.update_forward_refs()

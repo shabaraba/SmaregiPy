@@ -22,7 +22,8 @@ setuptools.setup(
         # 'console_scripts': ['sample_command = sample_command.sample_command:main']
     },
     install_requires=[
-        'pytz'
+        'pytz',
+        'pydantic',
     ],
     python_requires='>=3.7',
 )

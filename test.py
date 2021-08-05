@@ -21,12 +21,44 @@ async def product_demo():
 
 async def store_demo():
     try:
+        store_ = pos.Store().id(1)
+        store_2 = pos.Store().id(2)
+        store_1 = await store_.get()
+        print('---store_1 before')
+        pprint(store_1)
+        store_1.store_code = "test"
+        store_1.point_condition.spend_rate = 1
+        await store_1.save()
+        print('---store_1 after')
+        pprint(store_1)
+
         # get all stores, pick up a store, and update the store's store name
         all_stores = await pos.StoreCollection().get_all()
+        print('---all stores')
+        pprint(all_stores)
+        print('---Collection is iterable')
+        pprint(all_stores[0])
+
+        print('---Collection also has "id" method for search by id from fetched data.')
+        store_2 = all_stores.id(1)
+        print('---use "save" method for updating or creating record. ')
+        store_2.point_condition.point_use_division = False
+        print('---store_2 updated')
+        await store_2.save()
+        pprint(store_2)
+
+        # create store
+        store_3 = pos.Store(
+            store_name='store_3_created',
+            store_code='store_3_created',
+        )
+        pprint(store_3)
+        print('---store_3 created')
+        await store_3.save()
+        pprint(store_3)
+        print('---and store_3 delete')
         breakpoint()
-        updated_store = await all_stores.id(1).update(store_name="smaregipy")
-        print('---store')
-        pprint(updated_store)
+        await store_3.delete()
 
     except Exception as e:
         pprint(e)
