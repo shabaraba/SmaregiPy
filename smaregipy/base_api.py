@@ -158,7 +158,7 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
     @classmethod
     def _get_uri(
         cls: Type[T_BaseService],
-        path_params: Optional[Dict[str, Union[str, None]]] = None
+        path_params: Optional[Dict[str, Any]] = None
     ) -> str:
         return "{endpoint}/{path_list}".format(
             endpoint=config.smaregi_config.uri_pos,
@@ -195,7 +195,7 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
         limit: Optional[int] = None,
         page: Optional[int] = None,
         where_dict: Optional[Dict[Any, str]] = None
-    ):
+    ) -> str:
         body = { }
         if (field is not None):
             body.update({
@@ -217,7 +217,7 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
         if (where_dict is not None):
             body.update(where_dict)
 
-        return body
+        return json.dumps(body)
 
     @staticmethod
     def _api_get(uri: str, header: Dict, body: Dict, all: bool = False) -> Tuple[int, Any]:

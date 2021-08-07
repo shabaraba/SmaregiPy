@@ -4,7 +4,6 @@ from smaregipy import SmaregiPy
 from smaregipy.config import Config
 from smaregipy.account import Account
 from smaregipy import pos
-import pdb
 
 async def product_demo():
     pass
@@ -97,7 +96,7 @@ async def create_transaction_detail_csv_demo():
         response = await pos.Transaction().details.create_csv(
             transactionDateTimeFrom='2021-02-01T00:00:00+0900',
             transactionDateTimeTo='2021-02-20T00:00:00+0900',
-            callbackUrl='https://webhook.site/a014e761-9c20-4d4e-b104-f03faeeec087'
+            callbackUrl='https://webhook.site/da52a834-e7df-4a07-9ca1-7b402c8a91f3'
         )
         print('---transaction detail csv created')
         print(response)
@@ -136,9 +135,9 @@ if __name__ == '__main__':
 
     tasks = asyncio.gather(
         # store_demo(),
-        product_demo(),
+        # product_demo(),
         # transaction_demo(),
-        # create_transaction_detail_csv_demo(),
+        create_transaction_detail_csv_demo(),
     )
 
     results = loop.run_until_complete(tasks)
