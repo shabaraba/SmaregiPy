@@ -2,22 +2,16 @@ import copy
 from pydantic import Field
 import datetime
 from typing import (
-    Any,
     ClassVar,
-    TypeVar,
-    Type,
     Dict,
     List,
     Optional,
-    Union,
-    cast
 )
 
 from smaregipy import config
 from smaregipy import entities
 from smaregipy.exceptions import ResponseException
 from smaregipy.base_api import (
-    BaseServiceApi,
     BaseServiceRecordApi,
     BaseServiceCollectionApi
 )
@@ -48,15 +42,15 @@ class TransactionDetail(BaseServiceRecordApi):
     unit_discount_price: Optional[int] = Field(default_factory=NoData)
     unit_discount_rate: Optional[float] = Field(default_factory=NoData)
     unit_discount_division: Optional[int] = Field(default_factory=NoData)
-    cost: Optional[int] = Field(default_factory=NoData)
+    cost: Optional[float] = Field(default_factory=NoData)
     quantity: Optional[int] = Field(default_factory=NoData)
     unit_non_discount_sum: Optional[int] = Field(default_factory=NoData)
     unit_discount_sum: Optional[int] = Field(default_factory=NoData)
     unit_discounted_sum: Optional[int] = Field(default_factory=NoData)
-    cost_sum: Optional[int] = Field(default_factory=NoData)
+    cost_sum: Optional[float] = Field(default_factory=NoData)
     category_id: Optional[int] = Field(default_factory=NoData)
     category_name: Optional[str] = Field(default_factory=NoData)
-    discrimination_no: Optional[int] = Field(default_factory=NoData)
+    discrimination_no: Optional[str] = Field(default_factory=NoData)
     sales_division: Optional[int] = Field(default_factory=NoData)
     product_division: Optional[int] = Field(default_factory=NoData)
     inventory_reservation_division: Optional[int] = Field(default_factory=NoData)
@@ -88,17 +82,17 @@ class TransactionDetail(BaseServiceRecordApi):
     bargain_value: Optional[int] = Field(default_factory=NoData)
     apply_bargain_value: Optional[int] = Field(default_factory=NoData)
     apply_bargain_discount_price: Optional[int] = Field(default_factory=NoData)
-    tax_rate: Optional[int] = Field(default_factory=NoData)
-    standard_tax_rate: Optional[int] = Field(default_factory=NoData)
-    modified_tax_rate: Optional[int] = Field(default_factory=NoData)
+    tax_rate: Optional[float] = Field(default_factory=NoData)
+    standard_tax_rate: Optional[float] = Field(default_factory=NoData)
+    modified_tax_rate: Optional[float] = Field(default_factory=NoData)
     reduce_tax_id: Optional[int] = Field(default_factory=NoData)
     reduce_tax_name: Optional[str] = Field(default_factory=NoData)
-    reduce_tax_rate: Optional[int] = Field(default_factory=NoData)
+    reduce_tax_rate: Optional[float] = Field(default_factory=NoData)
     reduce_tax_price: Optional[int] = Field(default_factory=NoData)
     reduce_tax_member_price: Optional[int] = Field(default_factory=NoData)
 
 
-class TransactionDetailCollection(BaseServiceCollectionApi):
+class TransactionDetailCollection(BaseServiceCollectionApi[TransactionDetail]):
     RECORD_NAME = 'details'
     COLLECT_MODEL = TransactionDetail
 
@@ -155,6 +149,11 @@ class TransactionDetailCollection(BaseServiceCollectionApi):
 
 class Transaction(BaseServiceRecordApi):
     RECORD_NAME = 'transactions'
+    ID_PROPERTY_NAME: ClassVar[str] = 'transaction_head_id'
+    REQUEST_EXCLUDE_KEY: ClassVar[List[str]] = [
+        'transaction_head_id',
+    ]
+    WITH: ClassVar[List[str]] = ['details']
 
     transaction_head_id: Optional[int] = Field(default_factory=NoData)
     transaction_date_time: Optional[datetime.datetime] = Field(default_factory=NoData)
@@ -270,7 +269,8 @@ class Transaction(BaseServiceRecordApi):
     gift_receipt_valid_days: Optional[datetime.date] = Field(default_factory=NoData)
     barcode: Optional[str] = Field(default_factory=NoData)
     upd_date_time: Optional[datetime.datetime] = Field(default_factory=NoData)
-    details: 'TransactionDetailCollection' = TransactionDetailCollection()
+    details: TransactionDetailCollection = TransactionDetailCollection()
+    # details: List[TransactionDetail] = Field(default_factory=NoData)
 
 
     @property
@@ -278,9 +278,8 @@ class Transaction(BaseServiceRecordApi):
         return self
 
 
-class TransactionCollection(BaseServiceCollectionApi):
+class TransactionCollection(BaseServiceCollectionApi[Transaction]):
     RECORD_NAME = 'transactions'
     COLLECT_MODEL = Transaction
     WITH: ClassVar[List[str]] = ['details']
-
 

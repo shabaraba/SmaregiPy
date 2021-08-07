@@ -1,12 +1,9 @@
 import datetime
 from pydantic import Field
 from typing import (
-    Any,
-    Generic,
     ClassVar,
     List,
     Optional,
-    Union,
 )
 from smaregipy.base_api import (
     BaseServiceRecordApi,
@@ -117,8 +114,8 @@ class Store(BaseServiceRecordApi):
     ins_date_time: Optional[datetime.datetime] = Field(default_factory=NoData) 
     upd_date_time: Optional[datetime.datetime] = Field(default_factory=NoData) 
     face_payment_use_division: Optional[int] = Field(default_factory=NoData) 
-    point_condition: 'PointCondition' = PointCondition()
-    receipt_print_info: 'ReceiptPrintInfo' = ReceiptPrintInfo()
+    point_condition: PointCondition = PointCondition()
+    receipt_print_info: ReceiptPrintInfo = ReceiptPrintInfo()
 
 
 class StoreCollection(BaseServiceCollectionApi[Store]):
@@ -128,5 +125,5 @@ class StoreCollection(BaseServiceCollectionApi[Store]):
     WITH: ClassVar[List[str]] = ['point_condition','receipt_print_info']
 
 
-Store.update_forward_refs()
+# Store.update_forward_refs()
 

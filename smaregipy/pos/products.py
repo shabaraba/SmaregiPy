@@ -1,18 +1,15 @@
-from pydantic import Field
 import datetime
-import copy
+from pydantic import Field
 from typing import (
-    Any,
     ClassVar,
-    TypeVar,
-    Type,
-    Dict,
     List,
     Optional,
-    Union,
-    cast
 )
-from smaregipy.base_api import BaseServiceRecordApi, BaseServiceCollectionApi
+from smaregipy.base_api import (
+    BaseServiceRecordApi,
+    BaseServiceCollectionApi,
+)
+
 from smaregipy.utils import NoData
 
 
@@ -62,7 +59,7 @@ class Product(BaseServiceRecordApi):
     upd_date_time: Optional[datetime.datetime] = Field(default_factory=NoData) 
 
 
-class ProductCollection(BaseServiceCollectionApi):
+class ProductCollection(BaseServiceCollectionApi[Product]):
     RECORD_NAME = 'products'
     COLLECT_MODEL = Product
     WITH: ClassVar[List[str]] = []

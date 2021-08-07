@@ -41,6 +41,8 @@ class DictUtil:
         for k, v in d.items():
             if isinstance(v, dict):
                 v = DictUtil.convert_key_to_snake(v)
+            if isinstance(v, list):
+                v = [DictUtil.convert_key_to_snake(each_v) for each_v in v]
             result[StringUtil.camel_to_snake(k)] = v
 
         return result
