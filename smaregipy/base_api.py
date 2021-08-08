@@ -87,46 +87,6 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
     _path_params: Dict[str, Union[str, None]] = {}
     _status: DataStatus = DataStatus.NON_SAVED
 
-    @classmethod
-    def create_with_path_params_and_status(
-        cls: Type[T_BaseService],
-        path_params={},
-        status=DataStatus.NON_SAVED,
-        **kwargs
-    ) -> T_BaseService:
-        """
-            apiのレスポンス経由でのみ呼ばれる
-            当クラスを、特定のプロテクテッドメンバに値を入れてインスタンス化する
-        """
-        instance = cls.parse_obj(kwargs)
-        # instance = cls(**kwargs)
-        if path_params.get(instance.RECORD_NAME) is None:
-            path_params[instance.RECORD_NAME] = None
-        instance._path_params = path_params
-        instance._status = status
-        return instance
-
-    def _set_path_params(self, path_params: Dict[str, Union[str, None]]) -> None:
-        self._path_params = copy.deepcopy(path_params)
-        self._path_params[self.RECORD_NAME] = None
-
-    def _set_status(self: T_BaseService, value: 'DataStatus') -> T_BaseService:
-        """
-            path_paramsに指定されたidをセットします
-            これコードを持つなら全てに適用
-        """
-        self._status = value
-        __root__ = getattr(self, '__root__', None)
-        if __root__ is not None and isinstance(__root__, list):
-            for child in self.__root__:
-                if isinstance(child, BaseServiceApi):
-                    child._set_status(self._status)
-        for child in self.__dict__.values():
-            if isinstance(child, BaseServiceApi):
-                child._set_status(self._status)
-
-        return self
-
     def id(self: T_BaseService, value: int) -> T_BaseService:
         """
             path_paramsに指定されたidをセットします
@@ -144,22 +104,28 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
 
         return self
 
-    def is_no_data(self) -> bool:
-        has_data_fields = []
-        for k, v in self.__fields__.items():
-            if (
-                not k in ('_path_params','_status') and
-                v is not NoData
-            ):
-                has_data_fields.append(k)
+    def _set_path_params(self, path_params: Dict[str, Union[str, None]]) -> None:
+        self._path_params = copy.deepcopy(path_params)
+        self._path_params[self.RECORD_NAME] = None
 
-        return True if has_data_fields == [] else False
+    def _set_status(self: T_BaseService, value: 'DataStatus') -> T_BaseService:
+        """
+            path_paramsに指定されたidをセットします
+            これコードを持つなら全てに適用
+        """
+        self._status = value
+        __root__ = getattr(self, '__root__', None)
+        if __root__ is not None and isinstance(__root__, list):
+            for child in __root__:
+                if isinstance(child, BaseServiceApi):
+                    child._set_status(self._status)
+        for child in self.__dict__.values():
+            if isinstance(child, BaseServiceApi):
+                child._set_status(self._status)
 
-    @classmethod
-    def _get_uri(
-        cls: Type[T_BaseService],
-        path_params: Optional[Dict[str, Any]] = None
-    ) -> str:
+        return self
+
+    def _get_uri(self: 'BaseServiceApi', path_params: Optional[Dict[str, Any]]=None) -> str:
         return "{endpoint}/{path_list}".format(
             endpoint=config.smaregi_config.uri_pos,
             path_list="/".join(
@@ -172,11 +138,8 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
             ) if path_params is not None else "",
         )
 
-    @classmethod
-    def _get_with_query(
-        cls: Type[T_BaseService]
-    ) -> dict:
-        return {f"with_{key}": 'all' for key in cls.WITH}
+    def _get_with_query(self: 'BaseServiceApi') -> dict:
+        return {f"with_{key}": 'all' for key in self.WITH}
 
     @staticmethod
     def _get_header():
@@ -220,7 +183,7 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
         return json.dumps(body)
 
     @staticmethod
-    def _api_get(uri: str, header: Dict, body: Dict, all: bool = False) -> Tuple[int, Any]:
+    def _api_get(uri: str, header: Dict, body: str, all: bool = False) -> Tuple[int, Any]:
         """GETのAPIを実施します
         link、pageがある場合、すべて実施してデータを結合します
 
@@ -232,7 +195,7 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
         Returns:
             Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
         """
-        response = requests.get(uri, headers=header, params=urlencode(body))
+        response = requests.get(uri, headers=header, params=urlencode(json.loads(body)))
         if response.status_code not in [
             BaseApi.Response.STATUS_SUCCESS,
             BaseApi.Response.STATUS_ACCEPTED,
@@ -532,12 +495,7 @@ class BaseServiceCollectionApi(pydantic.generics.GenericModel, BaseServiceApi, G
         snake_case_converted = [DictUtil.convert_key_to_snake(data) for data in response_data]
 
         model: Type[T_Collection] = getattr(self, '__class__')
-        response_model = model.parse_obj(
-            snake_case_converted
-            # __root__=snake_case_converted,
-            # path_params=self._path_params,
-            # status=self.DataStatus.FETCHED,
-        )
+        response_model = model.parse_obj(snake_case_converted)
 
         for model in response_model:
             model_id = getattr(model, model.ID_PROPERTY_NAME)
@@ -546,22 +504,10 @@ class BaseServiceCollectionApi(pydantic.generics.GenericModel, BaseServiceApi, G
         self.copy_all_fields(response_model)
         self._set_status(self.DataStatus.FETCHED)
         return self
-        # return model.create_with_path_params_and_status(
-        #     __root__=snake_case_converted,
-        #     path_params=self._path_params,
-        #     status=self.DataStatus.FETCHED,
-        # )
 
     def _create_collect_model_instances(self, data: List[T_InputEachData]) -> List[T_Record]:
         model: Type[T_Record] = getattr(self, 'COLLECT_MODEL')
-        records = [
-            # model.create_with_path_params_and_status(
-            model(
-                # path_params=self._path_params,
-                # status=self.DataStatus.FETCHED,
-                **each_data
-            ) for each_data in data
-        ]
+        records = [model(**each_data) for each_data in data]
 
         return records
 

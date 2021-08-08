@@ -1,7 +1,11 @@
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+
 from pprint import pprint
 
 from smaregipy import SmaregiPy
-from smaregipy.config import Config
 from smaregipy.account import Account
 from smaregipy import pos
 
@@ -39,7 +43,6 @@ async def store_demo():
         pprint(all_stores[0])
 
         print('---Collection also has "id" method for search by id from fetched data.')
-        breakpoint()
         store_2 = all_stores.find(1)
         print('---use "save" method for updating or creating record. ')
         store_2.point_condition.point_use_division = False
@@ -84,7 +87,6 @@ async def transaction_demo():
         print('---transaction detail')
         pprint(transaction.details)
         # and fetch details having detail id 1
-        breakpoint()
         pprint(transaction.details.find(1))
 
 
@@ -96,7 +98,7 @@ async def create_transaction_detail_csv_demo():
         response = await pos.Transaction().details.create_csv(
             transactionDateTimeFrom='2021-02-01T00:00:00+0900',
             transactionDateTimeTo='2021-02-20T00:00:00+0900',
-            callbackUrl='https://webhook.site/da52a834-e7df-4a07-9ca1-7b402c8a91f3'
+            callbackUrl=config.callback_uri
         )
         print('---transaction detail csv created')
         print(response)
@@ -104,22 +106,20 @@ async def create_transaction_detail_csv_demo():
         pprint(e)
 
 if __name__ == '__main__':
+    from samples import config
     import asyncio
-    contract_id = 'sb_skc130x6' 
-    smaregi_client_id = 'eaa4f2c64020b2d1e43577ec68b1f369'
-    smaregi_client_secret = 'de611f8c486cfd24c29b6ab8486edf6d9c0f9d4838eb43f771616524ff2e2d18'
     SmaregiPy.init_by_dict(
         {
-            'env_division': Config.ENV_DIVISION_DEVELOPMENT,
-            'contract_id': contract_id,
-            'redirect_uri': 'http://dev.from-garage.com/accounts/login',
-            'smaregi_client_id':smaregi_client_id,
-            'smaregi_client_secret':smaregi_client_secret
+            'env_division': config.env_division,
+            'contract_id': config.contract_id,
+            'redirect_uri': config.redirect_uri,
+            'smaregi_client_id': config.smaregi_client_id,
+            'smaregi_client_secret': config.smaregi_client_secret
         }
     )
 
     account = Account.authorize(
-        contract_id,
+        config.contract_id,
         [
             'pos.stores:read',
             'pos.stores:write',
@@ -134,9 +134,9 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     tasks = asyncio.gather(
-        # store_demo(),
-        # product_demo(),
-        # transaction_demo(),
+        store_demo(),
+        product_demo(),
+        transaction_demo(),
         create_transaction_detail_csv_demo(),
     )
 

@@ -1,0 +1,14 @@
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+
+from smaregipy.config import Config
+
+env_division = Config.ENV_DIVISION_DEVELOPMENT
+contract_id = '' 
+smaregi_client_id = ''
+smaregi_client_secret = ''
+redirect_uri = ''
+
+callback_uri = '' 
