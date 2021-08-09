@@ -12,6 +12,12 @@ from .products import (
     Product,
     ProductCollection,
 )
+from .customer_groups import (
+    CustomerGroup,
+    CustomerGroupCollection,
+    CustomerGroupSection,
+    CustomerGroupSectionCollection,
+)
 
 __all__ = [
     'Transaction',
@@ -22,4 +28,8 @@ __all__ = [
     'StoreCollection',
     'Product',
     'ProductCollection',
+    'CustomerGroup',
+    'CustomerGroupCollection',
+    'CustomerGroupSection',
+    'CustomerGroupSectionCollection',
 ]

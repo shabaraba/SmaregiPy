@@ -267,6 +267,29 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
 
         return (response.status_code, result)
 
+    def _api_put(self, uri: str, header: Dict, body: str) -> Tuple[int, Any]:
+        """PUTのAPIを実施します
+
+        Args:
+            uri (str): [description]
+            header (dict): [description]
+            body (dict): [description]
+
+        Returns:
+            Tuple[int, Any]: status, response の tuple statusが200でなければ、responseはエラー内容
+        """
+        response = requests.put(uri, headers=header, data=body)
+        result = response.json()
+        if response.status_code not in [
+            BaseApi.Response.STATUS_SUCCESS,
+            BaseApi.Response.STATUS_ACCEPTED,
+        ]:
+            raise ResponseException(
+                response.json()
+            )
+
+        return (response.status_code, result)
+
     def _api_delete(self, uri: str, header: Dict) -> Tuple[int, Any]:
         """DELETEのAPIを実施します
 
