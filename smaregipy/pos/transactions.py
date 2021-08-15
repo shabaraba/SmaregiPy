@@ -69,7 +69,7 @@ class TransactionDetail(BaseServiceRecordApi):
     staff_discount_proportional: Optional[int] = Field(default_factory=NoData)
     bargain_discount_proportional: Optional[int] = Field(default_factory=NoData)
     rounding_price_proportional: Optional[int] = Field(default_factory=NoData)
-    product_staff_discountRate: Optional[int] = Field(default_factory=NoData)
+    product_staff_discount_rate: Optional[int] = Field(default_factory=NoData)
     staff_rank: Optional[int] = Field(default_factory=NoData)
     staff_rank_name: Optional[str] = Field(default_factory=NoData)
     staff_discount_rate: Optional[int] = Field(default_factory=NoData)

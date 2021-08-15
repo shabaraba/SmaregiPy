@@ -207,7 +207,7 @@ class BaseServiceApi(pydantic.BaseModel, BaseApi):
 
         if all is True:
             while (('link' in response.headers) and ('next' in response.links)):
-                print(response.links)
+                # print(response.links)
                 uriNext = response.links['next']['url']
                 response = requests.get(uriNext, headers=header)
                 if response.status_code not in [
@@ -333,7 +333,7 @@ class BaseServiceRecordApi(BaseServiceApi):
 
 
     def __init__(self, **kwargs) -> None:
-        print(self.__class__)
+        # print(self.__class__)
         super().__init__(**kwargs)
         self._path_params = {self.RECORD_NAME: None}
         self._status = BaseServiceApi.DataStatus.NON_SAVED
@@ -466,7 +466,7 @@ class BaseServiceCollectionApi(pydantic.generics.GenericModel, BaseServiceApi, G
 
 
     def __init__(self, **kwargs) -> None:
-        print(self.__class__.__name__)
+        # print(self.__class__.__name__)
         super().__init__(**kwargs)
         self._path_params = {self.RECORD_NAME: None}
         # self._status = self._set_status(BaseServiceApi.DataStatus.NON_SAVED)
