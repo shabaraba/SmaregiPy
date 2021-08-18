@@ -9,16 +9,12 @@
 スマレジのプラットフォームAPIを実施するためのpython3用パッケージです。  
 pydanticを用いた型定義と、asyncメソッドを用いています。
 
-# Getting Instal
+# Install
 pipコマンドを用いてインストールできます。
 
 ```sh
 pip install git+https://github.com/shabaraba/SmaregiPy
 ```
-
-# Quick Start
-`sample`内をご覧ください。
-詳しい使い方は**Usage**をご覧ください。
 
 # Usage
 ## init
