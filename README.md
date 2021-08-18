@@ -54,7 +54,6 @@ accountのメンバは下記を参照のこと。
 https://github.com/shabaraba/SmaregiPy/blob/main/smaregipy/entities/account.py
 
 ## models
-ActiveRecordパターンを用いています。  
 **Record**と**Collection**の2種類のモデルを用意しており、それぞれ下記の通りです。
 
 - **Record**: 単体のモデル。単体を取得したり更新する際に使用。
