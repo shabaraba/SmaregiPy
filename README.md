@@ -75,6 +75,8 @@ fetch系に関して、with_*系はすべてallとして扱っています。
 ### examples
 ```python3
 from smaregipy import pos
+
+
 all_stores = await pos.StoreCollection().get_all()
 store = all_stores.find(1)
 store.store_name = 'updated'
