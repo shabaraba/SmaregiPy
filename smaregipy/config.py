@@ -49,7 +49,7 @@ class Config():
 
     def set_env(self: 'Config', env_division: str) -> 'Config':
         self.env_division = env_division
-        if env_division is self.ENV_DIVISION_PRODUCTION:
+        if env_division == self.ENV_DIVISION_PRODUCTION:
             self.uri_access = 'https://id.smaregi.jp'
             self.uri_api = 'https://api.smaregi.jp'
         else:
